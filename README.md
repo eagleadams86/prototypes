@@ -3,6 +3,7 @@
 Self-contained, no-server web app prototypes. Each app is a single HTML file — open it directly in a browser (`file://` works) or use the GitHub Pages links below. No build step, no dependencies, no accounts.
 
 - **ReturnRadar:** [eagleadams86.github.io/prototypes/returnradar.html](https://eagleadams86.github.io/prototypes/returnradar.html)
+- **PAPTrack:** [eagleadams86.github.io/prototypes/cpap-tracker.html](https://eagleadams86.github.io/prototypes/cpap-tracker.html)
 
 ---
 
@@ -11,6 +12,7 @@ Self-contained, no-server web app prototypes. Each app is a single HTML file —
 | File | Description |
 |------|-------------|
 | `returnradar.html` | Return-window & warranty deadline tracker — the entire app in one file |
+| `cpap-tracker.html` | PAPTrack: CPAP supply cleaning, replacement & reorder tracker — one file |
 | `favicon.ico` | Shared favicon (same one used across the dashboard and lottery repos) |
 
 ---
@@ -55,11 +57,45 @@ Never miss a return window or warranty again. Americans forfeit billions every y
 
 ---
 
+## 🌬️ PAPTrack
+
+Keeps CPAP supplies on schedule three ways at once: **cleaning** (daily/weekly reminders), **replacement** (countdowns per the standard DME schedule), and **inventory** (spares on hand with reorder flags). Built from a supplier's "clean & replace your equipment" flyer.
+
+### Built-in supply presets
+
+| Supply | Clean | Replace |
+|--------|-------|---------|
+| 😷 Mask | daily | every 3 months |
+| 🪢 Headgear | weekly | every 6 months |
+| 〰️ Tubing | weekly | every 3 months |
+| 🌫️ Disposable Fine Filters | — (replace only) | every 2 weeks |
+| 🛟 Full Face Cushions | daily | every month |
+| 👃 Nasal Cushions & Pillows | daily | every 2 weeks |
+| 💧 Humidifier Chamber | daily | every 6 months |
+
+Every value is editable per item, and custom items are supported for anything else (chinstrap, SD card, wipes…).
+
+### Features
+
+- **One-tap setup** — "Load full-face kit" or "Load nasal kit" adds the six matching supplies at once; then set each item's real "last replaced" date via Edit
+- **Replacement countdowns** — every item shows its next due date with urgency-colored badges (overdue red, ≤7 days orange, ≤14 days amber, otherwise green); the list sorts most-urgent first
+- **Cleaning tracker** — items show "Cleaning due" or "Cleaned today/yesterday/N days ago"; one-tap **Mark cleaned**, plus a **Mark all due items cleaned** button for the daily routine
+- **Inventory & reorder** — a spares counter with −/+ steppers on every card; items are flagged **Reorder** when spares fall to the item's threshold and a replacement is due within 30 days. **Replaced today** resets the countdown and consumes a spare automatically
+- **Stat tiles** — items to clean today, next replacement (item + days), and how many supplies need reordering
+- **Search & filters** — live search plus chips: All, 🧼 Clean due, ⏰ Replace soon, 📦 Reorder, ✓ All good
+- **Calendar reminders** — one-tap `.ics` export of the next replacement date with an alarm 2 days before
+- **Resupply tip** — footer note about insurance PAP-adherence requirements and humidifier care (distilled water, empty every morning)
+- **Private & offline** — all data in `localStorage`; JSON backup export/import; no account, no server
+- **Midnight theme by default** — the shared deep indigo/navy palette, with a 🌗 toggle to a light theme; choice applied before first paint
+
+---
+
 ## Architecture
 
 ```
 GitHub Pages (static hosting, this repo, main branch)
-    └── returnradar.html — single file: HTML + CSS + JS, zero dependencies
+    ├── returnradar.html ─┐
+    └── cpap-tracker.html ─┴─ single file each: HTML + CSS + JS, zero dependencies
             └── all state ──► browser localStorage (per device)
                               backup/restore via JSON export & import
 ```

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PAPTrack — CPAP supply, cleaning & reorder tracker</title>
+<meta name="description" content="A private, offline-friendly tracker for CPAP supplies: cleaning schedules, replacement countdowns, and spare inventory. No account, no server — your data never leaves this device.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PAPTrack">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="favicon.ico">
+<script>
+  // Apply saved theme before first paint to avoid a flash. Midnight (dark) is the default.
+  (function () {
+    var t = localStorage.getItem('pap-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+  /* Midnight — deep indigo / navy, the default theme */
+  :root, [data-theme="dark"] {
+    --page: #0a0e1a; --surface: #121829; --ink: #e7eaf6; --ink-2: #aab2d0; --muted: #7e87a8;
+    --hairline: #262f4a; --ring: rgba(129,140,248,0.28);
+    --accent: #818cf8; --accent-ink: #0a0e1a;
+    --good: #4ade80; --warning: #fcd34d; --serious: #fb923c; --critical: #fb7185;
+    --good-bg: rgba(74,222,128,0.16); --warning-bg: rgba(252,211,77,0.14);
+    --serious-bg: rgba(251,146,60,0.16); --critical-bg: rgba(251,113,133,0.18);
+    --chip-bg: #1b2238; --shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  [data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --hairline: #e1e0d9; --ring: rgba(11,11,11,0.10);
+    --accent: #2a78d6; --accent-ink: #ffffff;
+    --good: #0ca30c; --warning: #b98200; --serious: #c25a2a; --critical: #d03b3b;
+    --good-bg: rgba(12,163,12,0.12); --warning-bg: rgba(250,178,25,0.18);
+    --serious-bg: rgba(236,131,90,0.16); --critical-bg: rgba(208,59,59,0.12);
+    --chip-bg: #f0efec; --shadow: 0 1px 3px rgba(11,11,11,0.06), 0 4px 14px rgba(11,11,11,0.05);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.45;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 96px; }
+
+  /* ---- Header ---- */
+  header.top { display: flex; align-items: center; gap: 12px; padding: 6px 0 2px; }
+  .logo { font-size: 1.9rem; line-height: 1; }
+  .title h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.01em; }
+  .title p { margin: 0; font-size: 0.8rem; color: var(--ink-2); }
+  .top .spacer { flex: 1; }
+  .icon-btn {
+    border: 1px solid var(--hairline); background: var(--surface); color: var(--ink);
+    border-radius: 12px; width: 40px; height: 40px; font-size: 1.05rem; cursor: pointer;
+  }
+  .icon-btn:hover { border-color: var(--muted); }
+
+  /* ---- Stat tiles ---- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px;
+    padding: 10px 12px; box-shadow: var(--shadow);
+  }
+  .stat .label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
+  .stat .value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+  .stat .sub { font-size: 0.75rem; color: var(--ink-2); }
+  @media (max-width: 520px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:last-child { grid-column: 1 / -1; }
+  }
+
+  /* ---- Toolbar ---- */
+  .toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .search {
+    width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--hairline);
+    background: var(--surface); color: var(--ink); font-size: 0.95rem;
+  }
+  .search:focus { outline: 2px solid var(--ring); border-color: var(--accent); }
+  .filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex: 0 0 auto; border: 1px solid var(--hairline); background: var(--surface); color: var(--ink-2);
+    padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+  }
+  .filter-chip[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); font-weight: 600; }
+  .cleanall { align-self: flex-start; }
+
+  /* ---- Cards ---- */
+  .list { display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px;
+    padding: 14px 14px 12px; box-shadow: var(--shadow);
+  }
+  .card .rowtop { display: flex; align-items: baseline; gap: 8px; }
+  .card h3 { margin: 0; font-size: 1.02rem; flex: 1; }
+  .card .schedule { font-size: 0.8rem; color: var(--ink-2); margin: 2px 0 8px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .b-good { background: var(--good-bg); } .b-good .dot { background: var(--good); }
+  .b-warning { background: var(--warning-bg); } .b-warning .dot { background: var(--warning); }
+  .b-serious { background: var(--serious-bg); } .b-serious .dot { background: var(--serious); }
+  .b-critical { background: var(--critical-bg); } .b-critical .dot { background: var(--critical); }
+  .b-neutral { background: var(--chip-bg); } .b-neutral .dot { background: var(--muted); }
+  .card .notes { font-size: 0.85rem; color: var(--ink-2); margin: 0 0 10px; }
+  .stock { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .stock .stk-label { font-size: 0.82rem; color: var(--ink-2); }
+  .stock button {
+    width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--hairline);
+    background: var(--chip-bg); color: var(--ink); font-size: 1rem; cursor: pointer; line-height: 1;
+  }
+  .stock .count { font-weight: 700; min-width: 1.6ch; text-align: center; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .act {
+    border: 1px solid var(--hairline); background: var(--surface); color: var(--ink);
+    padding: 8px 12px; border-radius: 12px; font-size: 0.85rem; cursor: pointer;
+  }
+  .act:hover { border-color: var(--muted); }
+  .act.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  /* ---- Empty state ---- */
+  .empty { text-align: center; padding: 40px 12px; color: var(--ink-2); }
+  .empty .big { font-size: 3rem; }
+  .empty h2 { color: var(--ink); margin: 8px 0 6px; }
+  .empty p { font-size: 0.9rem; max-width: 44ch; margin: 0 auto 16px; }
+  .empty .kits { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ---- Buttons / FAB ---- */
+  .btn {
+    background: var(--accent); color: var(--accent-ink); border: none; font-weight: 700;
+    padding: 12px 18px; border-radius: 999px; font-size: 0.95rem; cursor: pointer;
+  }
+  .fab {
+    position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35); z-index: 5;
+  }
+
+  /* ---- Dialog / form ---- */
+  dialog {
+    border: 1px solid var(--hairline); border-radius: 18px; background: var(--surface); color: var(--ink);
+    width: min(480px, calc(100vw - 32px)); padding: 18px; box-shadow: var(--shadow);
+  }
+  dialog::backdrop { background: rgba(4,6,14,0.6); backdrop-filter: blur(2px); }
+  dialog h2 { margin: 0 0 12px; font-size: 1.1rem; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 0.78rem; color: var(--ink-2); margin-bottom: 4px; font-weight: 600; }
+  .field input, .field select {
+    width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--hairline);
+    background: var(--page); color: var(--ink); font-size: 0.95rem;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--ring); border-color: var(--accent); }
+  .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .quick button {
+    border: 1px solid var(--hairline); background: var(--chip-bg); color: var(--ink-2);
+    padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; cursor: pointer;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .formfoot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+
+  /* ---- Footer ---- */
+  footer { margin-top: 28px; font-size: 0.78rem; color: var(--muted); text-align: center; }
+  footer .links { margin-top: 8px; display: flex; gap: 14px; justify-content: center; }
+  footer button { background: none; border: none; color: var(--accent); font-size: 0.78rem; cursor: pointer; text-decoration: underline; padding: 0; }
+  .insurance {
+    margin-top: 14px; padding: 10px 12px; border: 1px dashed var(--hairline); border-radius: 12px;
+    font-size: 0.78rem; color: var(--ink-2); text-align: left;
+  }
+
+  /* ---- Toast ---- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: var(--ink); color: var(--page); padding: 10px 16px; border-radius: 999px;
+    font-size: 0.85rem; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 9;
+    max-width: calc(100vw - 40px); text-align: center;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo" aria-hidden="true">🌬️</div>
+    <div class="title">
+      <h1>PAPTrack</h1>
+      <p>CPAP supplies: clean, replace, reorder</p>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="themeBtn" title="Toggle Midnight/light theme" aria-label="Toggle theme">🌗</button>
+  </header>
+
+  <div class="stats" id="stats" hidden>
+    <div class="stat">
+      <div class="label">Clean today</div>
+      <div class="value" id="statClean">0</div>
+      <div class="sub" id="statCleanSub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Next replacement</div>
+      <div class="value" id="statNext">—</div>
+      <div class="sub" id="statNextSub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Reorder</div>
+      <div class="value" id="statReorder">0</div>
+      <div class="sub" id="statReorderSub"></div>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <input type="search" class="search" id="search" placeholder="Search supplies, notes…">
+    <div class="filters" role="group" aria-label="Filter supplies">
+      <button class="filter-chip" data-filter="all" aria-pressed="true">All</button>
+      <button class="filter-chip" data-filter="clean" aria-pressed="false">🧼 Clean due</button>
+      <button class="filter-chip" data-filter="replace" aria-pressed="false">⏰ Replace soon</button>
+      <button class="filter-chip" data-filter="reorder" aria-pressed="false">📦 Reorder</button>
+      <button class="filter-chip" data-filter="ok" aria-pressed="false">✓ All good</button>
+    </div>
+    <button class="act cleanall" id="cleanAllBtn" hidden>🧼 Mark all due items cleaned</button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="empty" id="empty" hidden>
+    <div class="big" aria-hidden="true">🌬️</div>
+    <h2>Set up your CPAP kit in one tap</h2>
+    <p>PAPTrack keeps every supply on schedule — daily and weekly cleaning reminders, replacement countdowns, and a spares count so you reorder before you run out.</p>
+    <div class="kits">
+      <button class="btn" id="kitFull">Load full-face kit</button>
+      <button class="btn" id="kitNasal">Load nasal kit</button>
+    </div>
+    <p style="margin-top:14px"><button class="act" id="emptyAdd">or add items one at a time</button></p>
+  </div>
+
+  <footer>
+    <div>🔒 100% private — everything is stored only in this browser. No account, no server, works offline.</div>
+    <div class="links">
+      <button id="exportBtn">Export backup</button>
+      <button id="importBtn">Import backup</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="insurance">💡 <strong>Resupply tip:</strong> most insurance carriers require PAP adherence data before covering replacement supplies, and coverage varies by plan (copays and deductibles apply). Using distilled water and emptying the humidifier chamber every morning extends its life.</div>
+  </footer>
+</div>
+
+<button class="btn fab" id="addBtn">+ Add supply</button>
+<div class="toast" id="toast" role="status"></div>
+
+<dialog id="formDialog">
+  <h2 id="formTitle">Add supply</h2>
+  <form id="itemForm" method="dialog">
+    <div class="field" id="presetField">
+      <label for="fPreset">Start from a preset</label>
+      <select id="fPreset"></select>
+    </div>
+    <div class="field">
+      <label for="fName">Name</label>
+      <input type="text" id="fName" required maxlength="60" placeholder="e.g. Mask">
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="fClean">Clean every (days, 0 = none)</label>
+        <input type="number" id="fClean" min="0" max="365" value="0">
+        <div class="quick">
+          <button type="button" data-clean="1">Daily</button>
+          <button type="button" data-clean="7">Weekly</button>
+          <button type="button" data-clean="0">None</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fReplace">Replace every (days)</label>
+        <input type="number" id="fReplace" min="1" max="1095" required value="90">
+        <div class="quick">
+          <button type="button" data-replace="14">2 wk</button>
+          <button type="button" data-replace="30">1 mo</button>
+          <button type="button" data-replace="90">3 mo</button>
+          <button type="button" data-replace="180">6 mo</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="fLast">Last replaced</label>
+        <input type="date" id="fLast" required>
+      </div>
+      <div class="field">
+        <label for="fStock">Spares on hand</label>
+        <input type="number" id="fStock" min="0" max="99" value="0">
+      </div>
+    </div>
+    <div class="field">
+      <label for="fLowAt">Flag for reorder when spares ≤</label>
+      <input type="number" id="fLowAt" min="0" max="20" value="1">
+    </div>
+    <div class="field">
+      <label for="fNotes">Notes (size, model, supplier…)</label>
+      <input type="text" id="fNotes" maxlength="140" placeholder="e.g. ResMed AirFit F30i, size M">
+    </div>
+    <div class="formfoot">
+      <button type="button" class="act" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn" id="saveBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+'use strict';
+const STORAGE_KEY = 'pap-items';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* Presets from the standard DME "clean & replace" schedule. */
+const PRESETS = [
+  { key: 'mask',      emoji: '😷', name: 'Mask',                      cleanDays: 1, replaceDays: 90,  note: '' },
+  { key: 'headgear',  emoji: '🪢', name: 'Headgear',                  cleanDays: 7, replaceDays: 180, note: 'Stretches out over time and needs more tightening, affecting mask fit.' },
+  { key: 'tubing',    emoji: '〰️', name: 'Tubing',                    cleanDays: 7, replaceDays: 90,  note: 'Mineral deposits build up and compromise air quality and delivery.' },
+  { key: 'filters',   emoji: '🌫️', name: 'Disposable Fine Filters',   cleanDays: 0, replaceDays: 14,  note: 'Cannot be washed — replace only.' },
+  { key: 'ffcushion', emoji: '🛟', name: 'Full Face Cushions',        cleanDays: 1, replaceDays: 30,  note: 'Cushions break down and lose their seal over time.' },
+  { key: 'nasal',     emoji: '👃', name: 'Nasal Cushions & Pillows',  cleanDays: 1, replaceDays: 14,  note: 'Cushions break down and lose their seal over time.' },
+  { key: 'humid',     emoji: '💧', name: 'Humidifier Chamber',        cleanDays: 1, replaceDays: 180, note: 'Use distilled water and empty every morning to extend its life.' },
+  { key: 'custom',    emoji: '🔧', name: '',                          cleanDays: 0, replaceDays: 90,  note: '' },
+];
+const KITS = {
+  full:  ['mask', 'headgear', 'tubing', 'filters', 'ffcushion', 'humid'],
+  nasal: ['mask', 'headgear', 'tubing', 'filters', 'nasal', 'humid'],
+};
+
+let items = load();
+let filter = 'all';
+let query = '';
+let editingId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* ---------------- Date math ---------------- */
+function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function toISO(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function fmtDate(d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+
+/* ---------------- Derived state ---------------- */
+function nextReplace(it) { return addDays(parseDate(it.lastReplaced), it.replaceDays); }
+function replaceLeft(it) { return daysBetween(today(), nextReplace(it)); }
+function cleanDue(it) {
+  if (!it.cleanDays) return false;
+  if (!it.lastCleaned) return true;
+  return daysBetween(parseDate(it.lastCleaned), today()) >= it.cleanDays;
+}
+function reorderNeeded(it) { return it.stock <= it.lowAt && replaceLeft(it) <= 30; }
+function severity(days) {
+  if (days < 0) return 'critical';
+  if (days <= 7) return 'serious';
+  if (days <= 14) return 'warning';
+  return 'good';
+}
+function cleanLabel(n) { return n === 0 ? 'no cleaning' : n === 1 ? 'clean daily' : n === 7 ? 'clean weekly' : `clean every ${n} days`; }
+function replaceLabel(n) {
+  if (n % 30 === 0) { const m = n / 30; return `replace every ${m === 1 ? 'month' : m + ' months'}`; }
+  if (n % 7 === 0) { const w = n / 7; return `replace every ${w === 1 ? 'week' : w + ' weeks'}`; }
+  return `replace every ${n} days`;
+}
+
+/* ---------------- Rendering ---------------- */
+function badges(it) {
+  const out = [];
+  const left = replaceLeft(it);
+  const sev = severity(left);
+  if (left < 0) {
+    out.push(`<span class="badge b-critical"><span class="dot"></span>↻ Replace overdue by ${-left} day${left === -1 ? '' : 's'}</span>`);
+  } else {
+    out.push(`<span class="badge b-${sev}"><span class="dot"></span>↻ Replace by ${esc(fmtDate(nextReplace(it)))} · ${left} day${left === 1 ? '' : 's'} left</span>`);
+  }
+  if (it.cleanDays > 0) {
+    if (cleanDue(it)) {
+      out.push(`<span class="badge b-warning"><span class="dot"></span>🧼 Cleaning due</span>`);
+    } else {
+      const since = daysBetween(parseDate(it.lastCleaned), today());
+      out.push(`<span class="badge b-good"><span class="dot"></span>🧼 Cleaned ${since === 0 ? 'today' : since === 1 ? 'yesterday' : since + ' days ago'}</span>`);
+    }
+  }
+  if (reorderNeeded(it)) {
+    out.push(`<span class="badge b-${it.stock === 0 ? 'critical' : 'serious'}"><span class="dot"></span>📦 Reorder — ${it.stock} spare${it.stock === 1 ? '' : 's'} left</span>`);
+  }
+  return out.join('');
+}
+
+function matches(it) {
+  if (query) {
+    const q = query.toLowerCase();
+    if (!(`${it.name} ${it.notes || ''}`.toLowerCase().includes(q))) return false;
+  }
+  switch (filter) {
+    case 'clean': return cleanDue(it);
+    case 'replace': return replaceLeft(it) <= 14;
+    case 'reorder': return reorderNeeded(it);
+    case 'ok': return !cleanDue(it) && replaceLeft(it) > 14 && !reorderNeeded(it);
+    default: return true;
+  }
+}
+
+function render() {
+  const has = items.length > 0;
+  $('stats').hidden = !has;
+  $('toolbar').hidden = !has;
+  $('empty').hidden = has;
+  $('addBtn').hidden = !has;
+
+  if (has) {
+    const dueClean = items.filter(cleanDue);
+    $('statClean').textContent = dueClean.length;
+    $('statCleanSub').textContent = dueClean.length ? dueClean.map(i => i.emoji).join(' ') : 'all clean ✓';
+
+    const soonest = [...items].sort((a, b) => replaceLeft(a) - replaceLeft(b))[0];
+    const left = replaceLeft(soonest);
+    $('statNext').textContent = left < 0 ? 'overdue' : left === 0 ? 'today' : `${left} day${left === 1 ? '' : 's'}`;
+    $('statNextSub').textContent = soonest.name;
+
+    const reorder = items.filter(reorderNeeded);
+    $('statReorder').textContent = reorder.length;
+    $('statReorderSub').textContent = reorder.length ? reorder.map(i => i.emoji).join(' ') : 'stocked up ✓';
+
+    $('cleanAllBtn').hidden = dueClean.length < 2;
+  }
+
+  const visible = items.filter(matches).sort((a, b) => replaceLeft(a) - replaceLeft(b));
+  $('list').innerHTML = visible.map(it => `
+    <article class="card" data-id="${it.id}">
+      <div class="rowtop"><h3>${esc(it.emoji)} ${esc(it.name)}</h3></div>
+      <div class="schedule">${esc(cleanLabel(it.cleanDays))} · ${esc(replaceLabel(it.replaceDays))}</div>
+      <div class="badges">${badges(it)}</div>
+      ${it.notes ? `<p class="notes">${esc(it.notes)}</p>` : ''}
+      <div class="stock">
+        <span class="stk-label">Spares:</span>
+        <button data-act="stock-" aria-label="One fewer spare">−</button>
+        <span class="count">${it.stock}</span>
+        <button data-act="stock+" aria-label="One more spare">+</button>
+      </div>
+      <div class="actions">
+        ${it.cleanDays > 0 && cleanDue(it) ? `<button class="act primary" data-act="clean">🧼 Mark cleaned</button>` : ''}
+        <button class="act${it.cleanDays > 0 && cleanDue(it) ? '' : ' primary'}" data-act="replace">↻ Replaced today</button>
+        <button class="act" data-act="calendar">🗓 Calendar reminder</button>
+        <button class="act" data-act="edit">Edit</button>
+        <button class="act" data-act="delete">Delete</button>
+      </div>
+    </article>`).join('') || (has ? `<div class="empty"><p>Nothing matches this filter.</p></div>` : '');
+}
+
+/* ---------------- Toast ---------------- */
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ---------------- Card actions ---------------- */
+$('list').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = btn.closest('.card').dataset.id;
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  switch (btn.dataset.act) {
+    case 'clean':
+      it.lastCleaned = toISO(today());
+      save(); render(); toast(`${it.emoji} ${it.name} cleaned ✓`);
+      break;
+    case 'replace': {
+      it.lastReplaced = toISO(today());
+      const usedSpare = it.stock > 0;
+      if (usedSpare) it.stock -= 1;
+      save(); render();
+      toast(`${it.emoji} ${it.name} replaced${usedSpare ? ` — ${it.stock} spare${it.stock === 1 ? '' : 's'} left` : ''} 🎉`);
+      break;
+    }
+    case 'stock+':
+      it.stock = Math.min(99, it.stock + 1);
+      save(); render();
+      break;
+    case 'stock-':
+      it.stock = Math.max(0, it.stock - 1);
+      save(); render();
+      break;
+    case 'calendar':
+      downloadICS(it);
+      break;
+    case 'edit':
+      openForm(it);
+      break;
+    case 'delete':
+      if (confirm(`Delete "${it.name}"?`)) {
+        items = items.filter(i => i.id !== id);
+        save(); render(); toast('Deleted');
+      }
+      break;
+  }
+});
+
+$('cleanAllBtn').addEventListener('click', () => {
+  const due = items.filter(cleanDue);
+  const iso = toISO(today());
+  due.forEach(it => { it.lastCleaned = iso; });
+  save(); render();
+  toast(`Marked ${due.length} item${due.length === 1 ? '' : 's'} cleaned ✓`);
+});
+
+/* ---------------- Calendar (.ics) ---------------- */
+function escICS(s) { return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
+function downloadICS(it) {
+  const due = nextReplace(it);
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const day = (d) => toISO(d).replace(/-/g, '');
+  const summary = `Replace CPAP ${it.name}`;
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PAPTrack//EN',
+    'BEGIN:VEVENT',
+    `UID:${it.id}-${day(due)}@paptrack`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${day(due)}`,
+    `DTEND;VALUE=DATE:${day(addDays(due, 1))}`,
+    `SUMMARY:${escICS(summary)}`,
+    `DESCRIPTION:${escICS(`${it.name} is due for replacement (${replaceLabel(it.replaceDays)}). Check spares and reorder if needed.`)}`,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escICS(summary)}`, 'TRIGGER:-P2D', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR',
+  ];
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cpap-replacement.ics';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Calendar reminder downloaded (alarm 2 days before)');
+}
+
+/* ---------------- Add / edit form ---------------- */
+const dlg = $('formDialog');
+function fillPresetOptions() {
+  $('fPreset').innerHTML = PRESETS.map(p =>
+    `<option value="${p.key}">${p.key === 'custom' ? '🔧 Custom item' : `${p.emoji} ${p.name}`}</option>`).join('');
+}
+function applyPreset(key) {
+  const p = PRESETS.find(x => x.key === key);
+  if (!p) return;
+  $('fName').value = p.name;
+  $('fClean').value = p.cleanDays;
+  $('fReplace').value = p.replaceDays;
+  $('fNotes').value = p.note;
+}
+function openForm(it = null) {
+  editingId = it ? it.id : null;
+  $('formTitle').textContent = it ? `Edit ${it.name}` : 'Add supply';
+  $('presetField').hidden = !!it;
+  if (it) {
+    $('fName').value = it.name;
+    $('fClean').value = it.cleanDays;
+    $('fReplace').value = it.replaceDays;
+    $('fLast').value = it.lastReplaced;
+    $('fStock').value = it.stock;
+    $('fLowAt').value = it.lowAt;
+    $('fNotes').value = it.notes || '';
+  } else {
+    $('fPreset').value = 'mask';
+    applyPreset('mask');
+    $('fLast').value = toISO(today());
+    $('fStock').value = 0;
+    $('fLowAt').value = 1;
+  }
+  dlg.showModal();
+}
+$('fPreset').addEventListener('change', (e) => applyPreset(e.target.value));
+dlg.addEventListener('click', (e) => {
+  const c = e.target.closest('button[data-clean]');
+  if (c) { $('fClean').value = c.dataset.clean; return; }
+  const r = e.target.closest('button[data-replace]');
+  if (r) { $('fReplace').value = r.dataset.replace; }
+});
+$('cancelBtn').addEventListener('click', () => dlg.close());
+$('itemForm').addEventListener('submit', () => {
+  const presetKey = editingId ? null : $('fPreset').value;
+  const preset = presetKey ? PRESETS.find(p => p.key === presetKey) : null;
+  const data = {
+    name: $('fName').value.trim() || 'Untitled',
+    cleanDays: Math.max(0, Number($('fClean').value) || 0),
+    replaceDays: Math.max(1, Number($('fReplace').value) || 90),
+    lastReplaced: $('fLast').value || toISO(today()),
+    stock: Math.max(0, Number($('fStock').value) || 0),
+    lowAt: Math.max(0, Number($('fLowAt').value) || 0),
+    notes: $('fNotes').value.trim(),
+  };
+  if (editingId) {
+    const it = items.find(i => i.id === editingId);
+    Object.assign(it, data);
+    toast(`${it.emoji} ${it.name} updated`);
+  } else {
+    items.push({ id: uid(), emoji: preset ? preset.emoji : '🔧', lastCleaned: null, createdAt: Date.now(), ...data });
+    toast(`${data.name} added`);
+  }
+  save(); render();
+});
+
+/* ---------------- Starter kits ---------------- */
+function loadKit(keys) {
+  const iso = toISO(today());
+  keys.forEach(key => {
+    const p = PRESETS.find(x => x.key === key);
+    items.push({
+      id: uid(), emoji: p.emoji, name: p.name, cleanDays: p.cleanDays, replaceDays: p.replaceDays,
+      lastReplaced: iso, lastCleaned: null, stock: key === 'filters' ? 4 : 0, lowAt: 1,
+      notes: p.note, createdAt: Date.now(),
+    });
+  });
+  save(); render();
+  toast(`Added ${keys.length} supplies — set each “last replaced” date via Edit`);
+}
+$('kitFull').addEventListener('click', () => loadKit(KITS.full));
+$('kitNasal').addEventListener('click', () => loadKit(KITS.nasal));
+$('emptyAdd').addEventListener('click', () => openForm());
+$('addBtn').addEventListener('click', () => openForm());
+
+/* ---------------- Search & filters ---------------- */
+$('search').addEventListener('input', (e) => { query = e.target.value.trim(); render(); });
+document.querySelector('.filters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  filter = chip.dataset.filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+  render();
+});
+
+/* ---------------- Theme ---------------- */
+$('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('pap-theme', next);
+});
+
+/* ---------------- Backup ---------------- */
+$('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ app: 'paptrack', version: 1, exported: new Date().toISOString(), items }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `paptrack-backup-${toISO(today())}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Backup downloaded');
+});
+$('importBtn').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const parsed = JSON.parse(await file.text());
+    const incoming = Array.isArray(parsed) ? parsed : parsed.items;
+    if (!Array.isArray(incoming)) throw new Error('bad format');
+    if (!confirm(`Replace your ${items.length} item${items.length === 1 ? '' : 's'} with ${incoming.length} from the backup?`)) return;
+    items = incoming;
+    save(); render(); toast('Backup restored');
+  } catch {
+    toast('Could not read that backup file');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+fillPresetOptions();
+render();
+</script>
+</body>
+</html>
