@@ -48,7 +48,7 @@ Never miss a return window or warranty again. Americans forfeit billions every y
 
 ### Look & feel
 
-- **Light/dark themes** — follows the system preference by default (`prefers-color-scheme`), with a 🌗 toggle in the header; choice is saved in `localStorage` and applied before first paint (no flash)
+- **Light & Midnight themes** — follows the system preference by default (`prefers-color-scheme`), with a 🌗 toggle in the header; choice is saved in `localStorage` and applied before first paint (no flash). The dark theme uses the same deep indigo/navy Midnight palette as the lottery pages
 - **Mobile-first** — stat tiles reflow on narrow screens, filter chips scroll horizontally, safe-area insets handled for notched iPhones
 - **iPhone home-screen support** — Apple web-app meta tags included, so "Add to Home Screen" gives a standalone app feel
 - **Accessible** — ARIA labels/pressed states on the filter group and controls; urgency conveyed by icon + text, not color alone
