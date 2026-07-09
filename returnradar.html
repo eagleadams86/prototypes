@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ReturnRadar — never miss a return window or warranty</title>
+<meta name="description" content="A private, offline-friendly tracker for return deadlines and warranties. No account, no server — your data never leaves this device.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ReturnRadar">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+<script>
+  // Apply saved theme before first paint to avoid a flash.
+  (function () {
+    var t = localStorage.getItem('rr-theme') || 'auto';
+    if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+  :root, [data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --hairline: #e1e0d9; --ring: rgba(11,11,11,0.10);
+    --accent: #2a78d6; --accent-ink: #ffffff;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --good-bg: rgba(12,163,12,0.12); --warning-bg: rgba(250,178,25,0.18);
+    --serious-bg: rgba(236,131,90,0.16); --critical-bg: rgba(208,59,59,0.12);
+    --chip-bg: #f0efec; --shadow: 0 1px 3px rgba(11,11,11,0.06), 0 4px 14px rgba(11,11,11,0.05);
+  }
+  [data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --hairline: #2c2c2a; --ring: rgba(255,255,255,0.10);
+    --accent: #3987e5; --accent-ink: #ffffff;
+    --good-bg: rgba(12,163,12,0.20); --warning-bg: rgba(250,178,25,0.16);
+    --serious-bg: rgba(236,131,90,0.16); --critical-bg: rgba(208,59,59,0.22);
+    --chip-bg: #262624; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.45;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 96px; }
+
+  /* ---- Header ---- */
+  header { display: flex; align-items: center; gap: 10px; padding: 8px 0 4px; }
+  .logo { font-size: 1.7rem; line-height: 1; }
+  .title-block { flex: 1; min-width: 0; }
+  h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.01em; }
+  .tagline { font-size: 0.8rem; color: var(--ink-2); margin: 0; }
+  .icon-btn {
+    background: var(--surface); border: 1px solid var(--hairline); color: var(--ink);
+    border-radius: 10px; padding: 8px 10px; font-size: 0.95rem; cursor: pointer;
+    min-height: 40px;
+  }
+  .icon-btn:hover { border-color: var(--muted); }
+
+  /* ---- Stat tiles ---- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--ring); border-radius: 14px;
+    padding: 12px 14px; box-shadow: var(--shadow);
+  }
+  .stat .label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
+  .stat .value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+  .stat .sub { font-size: 0.75rem; color: var(--ink-2); }
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:last-child { grid-column: 1 / -1; }
+  }
+
+  /* ---- Toolbar ---- */
+  .toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .search {
+    width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--hairline);
+    background: var(--surface); color: var(--ink); font-size: 1rem; min-height: 44px;
+  }
+  .search::placeholder { color: var(--muted); }
+  .filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex: 0 0 auto; border: 1px solid var(--hairline); background: var(--surface); color: var(--ink-2);
+    border-radius: 999px; padding: 7px 14px; font-size: 0.85rem; cursor: pointer; min-height: 36px;
+  }
+  .filter-chip[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); font-weight: 600; }
+
+  /* ---- Item cards ---- */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--ring); border-radius: 14px;
+    padding: 14px; box-shadow: var(--shadow);
+  }
+  .card.returned { opacity: 0.65; }
+  .card-top { display: flex; gap: 10px; align-items: baseline; }
+  .item-name { font-weight: 650; font-size: 1.02rem; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .item-price { font-weight: 700; white-space: nowrap; }
+  .item-meta { font-size: 0.8rem; color: var(--ink-2); margin-top: 1px; overflow-wrap: anywhere; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+    padding: 4px 10px; font-size: 0.78rem; font-weight: 600; color: var(--ink);
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .badge.b-good { background: var(--good-bg); } .badge.b-good .dot { background: var(--good); }
+  .badge.b-warning { background: var(--warning-bg); } .badge.b-warning .dot { background: var(--warning); }
+  .badge.b-serious { background: var(--serious-bg); } .badge.b-serious .dot { background: var(--serious); }
+  .badge.b-critical { background: var(--critical-bg); } .badge.b-critical .dot { background: var(--critical); }
+  .badge.b-neutral { background: var(--chip-bg); color: var(--ink-2); } .badge.b-neutral .dot { background: var(--muted); }
+  .item-notes { font-size: 0.83rem; color: var(--ink-2); margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .card-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+  .act {
+    border: 1px solid var(--hairline); background: transparent; color: var(--ink-2);
+    border-radius: 9px; padding: 6px 11px; font-size: 0.82rem; cursor: pointer; min-height: 34px;
+  }
+  .act:hover { border-color: var(--muted); color: var(--ink); }
+  .act.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  /* ---- Empty state ---- */
+  .empty { text-align: center; padding: 48px 20px; color: var(--ink-2); }
+  .empty .big { font-size: 2.6rem; }
+  .empty h2 { color: var(--ink); font-size: 1.1rem; margin: 10px 0 6px; }
+  .empty p { font-size: 0.9rem; max-width: 42ch; margin: 0 auto 16px; }
+
+  /* ---- Add button ---- */
+  .fab {
+    position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom));
+    background: var(--accent); color: var(--accent-ink); border: none; border-radius: 999px;
+    padding: 14px 22px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25); min-height: 52px;
+  }
+  .btn {
+    background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px;
+    padding: 10px 18px; font-size: 0.95rem; font-weight: 600; cursor: pointer; min-height: 44px;
+  }
+  .btn.ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--hairline); }
+
+  /* ---- Dialog / form ---- */
+  dialog {
+    border: 1px solid var(--ring); border-radius: 16px; background: var(--surface); color: var(--ink);
+    width: min(94vw, 520px); padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.45); }
+  .dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 0; }
+  .dlg-head h2 { margin: 0; font-size: 1.1rem; }
+  form.item-form { padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--hairline);
+    background: var(--page); color: var(--ink); font-size: 1rem; font-family: inherit; min-height: 44px;
+  }
+  .field textarea { min-height: 60px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .quick { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .quick button {
+    border: 1px solid var(--hairline); background: var(--chip-bg); color: var(--ink-2);
+    border-radius: 999px; padding: 4px 11px; font-size: 0.78rem; cursor: pointer;
+  }
+  .hint { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+  footer { margin-top: 36px; text-align: center; font-size: 0.76rem; color: var(--muted); }
+  footer .links { margin-top: 6px; display: flex; gap: 14px; justify-content: center; }
+  footer button { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 0.76rem; padding: 4px; }
+
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom));
+    background: var(--ink); color: var(--page); border-radius: 999px; padding: 10px 18px;
+    font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 50;
+    max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">📡</div>
+    <div class="title-block">
+      <h1>ReturnRadar</h1>
+      <p class="tagline">Never miss a return window or warranty again</p>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="Toggle light/dark theme" aria-label="Toggle theme">🌗</button>
+  </header>
+
+  <div class="stats" id="stats" hidden>
+    <div class="stat">
+      <div class="label">Still returnable</div>
+      <div class="value" id="statReturnable">$0</div>
+      <div class="sub" id="statReturnableSub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Under warranty</div>
+      <div class="value" id="statWarranty">$0</div>
+      <div class="sub" id="statWarrantySub"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Next deadline</div>
+      <div class="value" id="statNext">—</div>
+      <div class="sub" id="statNextSub"></div>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <input type="search" class="search" id="search" placeholder="Search items, stores, notes…">
+    <div class="filters" role="group" aria-label="Filter items">
+      <button class="filter-chip" data-filter="all" aria-pressed="true">All active</button>
+      <button class="filter-chip" data-filter="returnable" aria-pressed="false">↩︎ Returnable</button>
+      <button class="filter-chip" data-filter="urgent" aria-pressed="false">⏰ Due soon</button>
+      <button class="filter-chip" data-filter="warranty" aria-pressed="false">🛡 Under warranty</button>
+      <button class="filter-chip" data-filter="expired" aria-pressed="false">Expired</button>
+      <button class="filter-chip" data-filter="returned" aria-pressed="false">✓ Returned</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="empty" id="empty" hidden>
+    <div class="big" aria-hidden="true">🧾</div>
+    <h2>Track a purchase in 15 seconds</h2>
+    <p>Add anything you buy. ReturnRadar counts down the return window and warranty, and shows you exactly how many days you have left to act — before it's money down the drain.</p>
+    <button class="btn" id="emptyAdd">+ Add your first purchase</button>
+    <p style="margin-top:14px"><button class="act" id="loadDemo">or load 4 example items to explore</button></p>
+  </div>
+
+  <footer>
+    <div>🔒 100% private — everything is stored only in this browser. No account, no server, works offline.</div>
+    <div class="links">
+      <button id="exportBtn">Export backup</button>
+      <button id="importBtn">Import backup</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </footer>
+</div>
+
+<button class="fab" id="fab" hidden>+ Add purchase</button>
+<div class="toast" id="toast" role="status"></div>
+
+<dialog id="itemDialog">
+  <div class="dlg-head">
+    <h2 id="dlgTitle">Add purchase</h2>
+    <button class="icon-btn" id="dlgClose" aria-label="Close">✕</button>
+  </div>
+  <form class="item-form" id="itemForm" novalidate>
+    <div class="field">
+      <label for="fName">What did you buy? *</label>
+      <input id="fName" required placeholder="e.g. Sony WH-1000XM6 headphones" autocomplete="off">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="fStore">Store</label>
+        <input id="fStore" list="storeList" placeholder="e.g. Amazon" autocomplete="off">
+        <datalist id="storeList"></datalist>
+        <div class="hint" id="storeHint"></div>
+      </div>
+      <div class="field">
+        <label for="fPrice">Price ($)</label>
+        <input id="fPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+    <div class="field">
+      <label for="fDate">Purchase date *</label>
+      <input id="fDate" type="date" required>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="fReturn">Return window (days)</label>
+        <input id="fReturn" type="number" inputmode="numeric" min="0" max="3650" placeholder="e.g. 30">
+        <div class="quick" id="returnQuick"></div>
+      </div>
+      <div class="field">
+        <label for="fWarranty">Warranty (months)</label>
+        <input id="fWarranty" type="number" inputmode="numeric" min="0" max="600" placeholder="e.g. 12">
+        <div class="quick" id="warrantyQuick"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fCategory">Category</label>
+      <select id="fCategory"></select>
+    </div>
+    <div class="field">
+      <label for="fNotes">Notes (order #, serial #, where the receipt is…)</label>
+      <textarea id="fNotes" placeholder="Optional"></textarea>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn" id="saveBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+'use strict';
+
+/* ---------------- Data ---------------- */
+const STORAGE_KEY = 'returnradar-items-v1';
+const DAY = 86400000;
+
+// Typical return windows for common US retailers; auto-fills the form as a starting point.
+const STORE_PRESETS = {
+  'Amazon': 30, 'Target': 90, 'Walmart': 90, 'Costco': 90, 'Best Buy': 15,
+  'Apple': 14, 'Home Depot': 90, "Lowe's": 90, "Kohl's": 180, "Macy's": 30,
+  'IKEA': 365, 'REI': 365, 'Nike': 60, 'Gap': 30, 'Old Navy': 30,
+  'Staples': 30, 'GameStop': 15, 'Wayfair': 30, 'Etsy': 30, 'eBay': 30,
+};
+const CATEGORIES = ['📺 Electronics', '👕 Clothing & shoes', '🏠 Home & kitchen', '🔧 Tools & auto',
+  '🧸 Kids & toys', '🏋️ Sports & outdoors', '💄 Health & beauty', '🎁 Gifts', '📦 Other'];
+
+let items = load();
+let filter = 'all';
+let query = '';
+let editingId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* ---------------- Date math ---------------- */
+function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function fmtDate(d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+function toISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function returnDeadline(it) {
+  if (!it.returnDays) return null;
+  const d = parseDate(it.date); d.setDate(d.getDate() + it.returnDays); return d;
+}
+function warrantyEnd(it) {
+  if (!it.warrantyMonths) return null;
+  const d = parseDate(it.date); d.setMonth(d.getMonth() + it.warrantyMonths); return d;
+}
+function daysLeft(deadline) { return Math.round((deadline - today()) / DAY); }
+
+/* Days until the nearest still-open deadline; used for urgency sorting. */
+function urgency(it) {
+  if (it.returned) return Infinity;
+  let best = Infinity;
+  const r = returnDeadline(it);
+  if (r && daysLeft(r) >= 0) best = Math.min(best, daysLeft(r));
+  const w = warrantyEnd(it);
+  if (w && daysLeft(w) >= 0) best = Math.min(best, daysLeft(w) + 100000); // warranty is less urgent than a return window
+  return best;
+}
+function isReturnable(it) { const r = returnDeadline(it); return !it.returned && r && daysLeft(r) >= 0; }
+function isUnderWarranty(it) { const w = warrantyEnd(it); return !it.returned && w && daysLeft(w) >= 0; }
+function isExpired(it) { return !it.returned && !isReturnable(it) && !isUnderWarranty(it); }
+
+const fmtMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const fmtMoneyCents = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+/* ---------------- Rendering ---------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function severityFor(days) {
+  if (days <= 3) return 'critical';
+  if (days <= 7) return 'serious';
+  if (days <= 14) return 'warning';
+  return 'good';
+}
+
+function badgesFor(it) {
+  const out = [];
+  if (it.returned) {
+    out.push(`<span class="badge b-neutral"><span class="dot"></span>✓ Returned${it.returnedDate ? ' ' + esc(fmtDate(parseDate(it.returnedDate))) : ''}</span>`);
+    return out.join('');
+  }
+  const r = returnDeadline(it);
+  if (r) {
+    const d = daysLeft(r);
+    if (d >= 0) {
+      const sev = severityFor(d);
+      const when = d === 0 ? 'today!' : d === 1 ? 'tomorrow' : `${d} days left`;
+      out.push(`<span class="badge b-${sev}"><span class="dot"></span>↩︎ Return by ${esc(fmtDate(r))} · ${when}</span>`);
+    } else {
+      out.push(`<span class="badge b-neutral"><span class="dot"></span>Return window closed</span>`);
+    }
+  }
+  const w = warrantyEnd(it);
+  if (w) {
+    const d = daysLeft(w);
+    if (d >= 0) {
+      const sev = d <= 30 ? 'warning' : 'good';
+      const left = d >= 60 ? `${Math.round(d / 30)} months left` : `${d} days left`;
+      out.push(`<span class="badge b-${sev}"><span class="dot"></span>🛡 Warranty until ${esc(fmtDate(w))} · ${left}</span>`);
+    } else {
+      out.push(`<span class="badge b-neutral"><span class="dot"></span>Warranty expired</span>`);
+    }
+  }
+  if (!r && !w) out.push(`<span class="badge b-neutral"><span class="dot"></span>No deadlines set</span>`);
+  return out.join('');
+}
+
+function matches(it) {
+  if (query) {
+    const hay = `${it.name} ${it.store || ''} ${it.notes || ''} ${it.category || ''}`.toLowerCase();
+    if (!hay.includes(query)) return false;
+  }
+  switch (filter) {
+    case 'returnable': return isReturnable(it);
+    case 'urgent': return isReturnable(it) && daysLeft(returnDeadline(it)) <= 7;
+    case 'warranty': return isUnderWarranty(it);
+    case 'expired': return isExpired(it);
+    case 'returned': return !!it.returned;
+    default: return !it.returned;
+  }
+}
+
+function render() {
+  const hasItems = items.length > 0;
+  $('stats').hidden = !hasItems;
+  $('toolbar').hidden = !hasItems;
+  $('fab').hidden = !hasItems;
+  $('empty').hidden = hasItems;
+
+  if (hasItems) {
+    // Stat tiles
+    const returnable = items.filter(isReturnable);
+    const underWarranty = items.filter(it => isUnderWarranty(it) && !isReturnable(it));
+    const rSum = returnable.reduce((s, it) => s + (Number(it.price) || 0), 0);
+    const wSum = items.filter(isUnderWarranty).reduce((s, it) => s + (Number(it.price) || 0), 0);
+    $('statReturnable').textContent = fmtMoney.format(rSum);
+    $('statReturnableSub').textContent = `${returnable.length} item${returnable.length === 1 ? '' : 's'} in the window`;
+    $('statWarranty').textContent = fmtMoney.format(wSum);
+    $('statWarrantySub').textContent = `${items.filter(isUnderWarranty).length} item${items.filter(isUnderWarranty).length === 1 ? '' : 's'} covered`;
+
+    const next = returnable.slice().sort((a, b) => daysLeft(returnDeadline(a)) - daysLeft(returnDeadline(b)))[0];
+    if (next) {
+      const d = daysLeft(returnDeadline(next));
+      $('statNext').textContent = d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d} days`;
+      $('statNextSub').textContent = `Return “${next.name}”`;
+    } else {
+      $('statNext').textContent = '—';
+      $('statNextSub').textContent = 'No open return windows';
+    }
+  }
+
+  const visible = items.filter(matches).sort((a, b) => urgency(a) - urgency(b));
+  $('list').innerHTML = visible.map(it => {
+    const meta = [it.category, it.store, fmtDate(parseDate(it.date))].filter(Boolean).join(' · ');
+    const canCal = !it.returned && isReturnable(it);
+    return `<article class="card${it.returned ? ' returned' : ''}" data-id="${it.id}">
+      <div class="card-top">
+        <div class="item-name">${esc(it.name)}</div>
+        ${it.price ? `<div class="item-price">${fmtMoneyCents.format(it.price)}</div>` : ''}
+      </div>
+      <div class="item-meta">${esc(meta)}</div>
+      <div class="badges">${badgesFor(it)}</div>
+      ${it.notes ? `<div class="item-notes">${esc(it.notes)}</div>` : ''}
+      <div class="card-actions">
+        ${it.returned
+          ? `<button class="act" data-act="unreturn">↩︎ Un-mark returned</button>`
+          : `<button class="act primary" data-act="return">✓ Mark returned</button>`}
+        ${canCal ? `<button class="act" data-act="calendar">📅 Add deadline to calendar</button>` : ''}
+        <button class="act" data-act="edit">Edit</button>
+        <button class="act" data-act="delete">Delete</button>
+      </div>
+    </article>`;
+  }).join('') || (query || filter !== 'all'
+    ? `<div class="empty"><div class="big" aria-hidden="true">🔍</div><h2>Nothing here</h2><p>No items match this filter or search.</p></div>`
+    : '');
+}
+
+/* ---------------- Actions ---------------- */
+$('list').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const card = btn.closest('.card');
+  const it = items.find(x => x.id === card.dataset.id);
+  if (!it) return;
+  switch (btn.dataset.act) {
+    case 'return':
+      it.returned = true; it.returnedDate = toISO(today());
+      save(); render(); toast(`Marked “${it.name}” returned 🎉`);
+      break;
+    case 'unreturn':
+      it.returned = false; delete it.returnedDate;
+      save(); render();
+      break;
+    case 'edit':
+      openDialog(it);
+      break;
+    case 'delete':
+      if (confirm(`Delete “${it.name}”? This can't be undone.`)) {
+        items = items.filter(x => x.id !== it.id);
+        save(); render(); toast('Deleted');
+      }
+      break;
+    case 'calendar':
+      downloadICS(it);
+      break;
+  }
+});
+
+function downloadICS(it) {
+  const r = returnDeadline(it);
+  if (!r) return;
+  const d = toISO(r).replace(/-/g, '');
+  const dNext = new Date(r); dNext.setDate(dNext.getDate() + 1);
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const summary = `Return deadline: ${it.name}${it.store ? ' (' + it.store + ')' : ''}`;
+  const escICS = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ReturnRadar//EN',
+    'BEGIN:VEVENT',
+    `UID:${it.id}@returnradar`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${d}`,
+    `DTEND;VALUE=DATE:${toISO(dNext).replace(/-/g, '')}`,
+    `SUMMARY:${escICS(summary)}`,
+    `DESCRIPTION:${escICS('Last day to return this item.' + (it.notes ? ' Notes: ' + it.notes : ''))}`,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escICS(summary)}`, 'TRIGGER:-P2D', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR',
+  ].join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'return-deadline.ics';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Calendar event downloaded — open it to add a reminder');
+}
+
+/* ---------------- Filters & search ---------------- */
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    filter = chip.dataset.filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.setAttribute('aria-pressed', c === chip ? 'true' : 'false'));
+    render();
+  });
+});
+$('search').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); render(); });
+
+/* ---------------- Dialog / form ---------------- */
+const dlg = $('itemDialog');
+
+// Populate static form pieces
+$('storeList').innerHTML = Object.keys(STORE_PRESETS).sort().map(s => `<option value="${esc(s)}">`).join('');
+$('fCategory').innerHTML = CATEGORIES.map(c => `<option>${esc(c)}</option>`).join('');
+$('returnQuick').innerHTML = [14, 30, 60, 90].map(d => `<button type="button" data-v="${d}">${d}d</button>`).join('');
+$('warrantyQuick').innerHTML = [12, 24, 36].map(m => `<button type="button" data-v="${m}">${m / 12}yr</button>`).join('');
+$('returnQuick').addEventListener('click', e => { if (e.target.dataset.v) $('fReturn').value = e.target.dataset.v; });
+$('warrantyQuick').addEventListener('click', e => { if (e.target.dataset.v) $('fWarranty').value = e.target.dataset.v; });
+
+$('fStore').addEventListener('input', () => {
+  const preset = STORE_PRESETS[$('fStore').value.trim()];
+  if (preset && !$('fReturn').value) {
+    $('fReturn').value = preset;
+    $('storeHint').textContent = `Typical ${$('fStore').value.trim()} return window: ${preset} days (auto-filled — adjust if needed)`;
+  } else {
+    $('storeHint').textContent = '';
+  }
+});
+
+function openDialog(it) {
+  editingId = it ? it.id : null;
+  $('dlgTitle').textContent = it ? 'Edit purchase' : 'Add purchase';
+  $('fName').value = it ? it.name : '';
+  $('fStore').value = it ? (it.store || '') : '';
+  $('fPrice').value = it && it.price != null ? it.price : '';
+  $('fDate').value = it ? it.date : toISO(today());
+  $('fReturn').value = it && it.returnDays ? it.returnDays : '';
+  $('fWarranty').value = it && it.warrantyMonths ? it.warrantyMonths : '';
+  $('fCategory').value = it && it.category && CATEGORIES.includes(it.category) ? it.category : CATEGORIES[0];
+  $('fNotes').value = it ? (it.notes || '') : '';
+  $('storeHint').textContent = '';
+  dlg.showModal();
+  if (!it) $('fName').focus();
+}
+
+$('itemForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('fName').value.trim();
+  const date = $('fDate').value;
+  if (!name || !date) { toast('Name and purchase date are required'); return; }
+  const data = {
+    name,
+    store: $('fStore').value.trim(),
+    price: $('fPrice').value === '' ? null : Math.max(0, parseFloat($('fPrice').value) || 0),
+    date,
+    returnDays: parseInt($('fReturn').value, 10) || 0,
+    warrantyMonths: parseInt($('fWarranty').value, 10) || 0,
+    category: $('fCategory').value,
+    notes: $('fNotes').value.trim(),
+  };
+  if (editingId) {
+    Object.assign(items.find(x => x.id === editingId), data);
+    toast('Saved');
+  } else {
+    items.push({ id: uid(), returned: false, createdAt: Date.now(), ...data });
+    toast(`Tracking “${name}” 📡`);
+  }
+  save(); render();
+  dlg.close();
+});
+
+$('fab').addEventListener('click', () => openDialog(null));
+$('emptyAdd').addEventListener('click', () => openDialog(null));
+$('cancelBtn').addEventListener('click', () => dlg.close());
+$('dlgClose').addEventListener('click', () => dlg.close());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+/* ---------------- Demo data ---------------- */
+$('loadDemo').addEventListener('click', () => {
+  const t = today();
+  const ago = days => { const d = new Date(t); d.setDate(d.getDate() - days); return toISO(d); };
+  items = [
+    { id: uid(), name: 'Sony WH-1000XM6 headphones', store: 'Best Buy', price: 399.99, date: ago(13), returnDays: 15, warrantyMonths: 12, category: '📺 Electronics', notes: 'Order #BBY-2284-1191 — receipt in email', returned: false, createdAt: Date.now() },
+    { id: uid(), name: 'Ninja air fryer', store: 'Target', price: 129.99, date: ago(25), returnDays: 90, warrantyMonths: 12, category: '🏠 Home & kitchen', notes: '', returned: false, createdAt: Date.now() },
+    { id: uid(), name: 'Running shoes', store: 'Nike', price: 89.99, date: ago(55), returnDays: 60, warrantyMonths: 0, category: '👕 Clothing & shoes', notes: 'Half size too small — return!', returned: false, createdAt: Date.now() },
+    { id: uid(), name: 'Cordless drill', store: 'Home Depot', price: 179.0, date: ago(200), returnDays: 90, warrantyMonths: 36, category: '🔧 Tools & auto', notes: 'Serial on the battery pack', returned: false, createdAt: Date.now() },
+  ];
+  save(); render();
+  toast('Loaded 4 example items — delete them anytime');
+});
+
+/* ---------------- Backup ---------------- */
+$('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ app: 'returnradar', version: 1, exported: new Date().toISOString(), items }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `returnradar-backup-${toISO(today())}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Backup downloaded');
+});
+$('importBtn').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const incoming = Array.isArray(data) ? data : data.items;
+    if (!Array.isArray(incoming)) throw new Error('bad format');
+    const valid = incoming.filter(x => x && typeof x.name === 'string' && typeof x.date === 'string');
+    const existing = new Set(items.map(x => x.id));
+    let added = 0;
+    for (const it of valid) {
+      if (!it.id || existing.has(it.id)) it.id = uid();
+      items.push(it); added++;
+    }
+    save(); render();
+    toast(`Imported ${added} item${added === 1 ? '' : 's'}`);
+  } catch {
+    toast('Could not read that file — is it a ReturnRadar backup?');
+  }
+  e.target.value = '';
+});
+
+/* ---------------- Theme ---------------- */
+$('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('rr-theme', next);
+});
+
+/* ---------------- Toast ---------------- */
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+render();
+</script>
+</body>
+</html>
