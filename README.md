@@ -86,7 +86,7 @@ Every value is editable per item, and custom items are supported for anything el
 - **Calendar reminders** — one-tap `.ics` export of the next replacement date with an alarm 2 days before
 - **Resupply tip** — footer note about insurance PAP-adherence requirements and humidifier care (distilled water, empty every morning)
 - **Private & offline** — all data in `localStorage`; JSON backup export/import; no account, no server
-- **Midnight theme by default** — the shared deep indigo/navy palette, with a 🌗 toggle to a light theme; choice applied before first paint
+- **7 themes, Midnight by default** — dropdown in the header with the same theme family as the lottery pages, listed alphabetically (Forest, Light, Midnight, Sepia, Slate, Solarized, Synthwave); choice saved in `localStorage` and applied before first paint
 
 ---
 

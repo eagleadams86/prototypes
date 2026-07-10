@@ -10,15 +10,19 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="favicon.ico">
 <script>
-  // Apply saved theme before first paint to avoid a flash. Midnight (dark) is the default.
+  // Apply saved theme before first paint to avoid a flash. Midnight is the default.
   (function () {
-    var t = localStorage.getItem('pap-theme') || 'dark';
+    var t = localStorage.getItem('pap-theme');
+    if (t === 'dark') t = 'midnight'; // pre-dropdown builds stored 'dark' for the Midnight palette
+    var valid = ['forest', 'light', 'midnight', 'sepia', 'slate', 'solarized', 'synthwave'];
+    if (valid.indexOf(t) === -1) t = 'midnight';
     document.documentElement.setAttribute('data-theme', t);
   })();
 </script>
 <style>
-  /* Midnight — deep indigo / navy, the default theme */
-  :root, [data-theme="dark"] {
+  /* Themes — palettes ported from the lottery pages' theme.css. Midnight is the
+     default; the :root block must stay first so the others can override it. */
+  :root, [data-theme="midnight"] {
     --page: #0a0e1a; --surface: #121829; --ink: #e7eaf6; --ink-2: #aab2d0; --muted: #7e87a8;
     --hairline: #262f4a; --ring: rgba(129,140,248,0.28);
     --accent: #818cf8; --accent-ink: #0a0e1a;
@@ -26,6 +30,16 @@
     --good-bg: rgba(74,222,128,0.16); --warning-bg: rgba(252,211,77,0.14);
     --serious-bg: rgba(251,146,60,0.16); --critical-bg: rgba(251,113,133,0.18);
     --chip-bg: #1b2238; --shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  /* Forest — deep green */
+  [data-theme="forest"] {
+    --page: #0a130d; --surface: #111e16; --ink: #e6f1e9; --ink-2: #a9c4b4; --muted: #7c9883;
+    --hairline: #21372a; --ring: rgba(52,211,153,0.28);
+    --accent: #34d399; --accent-ink: #0a130d;
+    --good: #6ee7a0; --warning: #fbbf24; --serious: #fb923c; --critical: #f87171;
+    --good-bg: rgba(110,231,160,0.15); --warning-bg: rgba(251,191,36,0.14);
+    --serious-bg: rgba(251,146,60,0.16); --critical-bg: rgba(248,113,113,0.17);
+    --chip-bg: #182a20; --shadow: 0 1px 3px rgba(0,0,0,0.5);
   }
   [data-theme="light"] {
     --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
@@ -35,6 +49,46 @@
     --good-bg: rgba(12,163,12,0.12); --warning-bg: rgba(250,178,25,0.18);
     --serious-bg: rgba(236,131,90,0.16); --critical-bg: rgba(208,59,59,0.12);
     --chip-bg: #f0efec; --shadow: 0 1px 3px rgba(11,11,11,0.06), 0 4px 14px rgba(11,11,11,0.05);
+  }
+  /* Sepia — warm paper light theme */
+  [data-theme="sepia"] {
+    --page: #f3ead7; --surface: #fbf5e7; --ink: #3a3020; --ink-2: #6a5b41; --muted: #8a7a5b;
+    --hairline: #e0d3b4; --ring: rgba(58,48,32,0.14);
+    --accent: #3a3020; --accent-ink: #fbf5e7;
+    --good: #4d7c0f; --warning: #b45309; --serious: #c2410c; --critical: #b1402a;
+    --good-bg: rgba(77,124,15,0.14); --warning-bg: rgba(180,83,9,0.14);
+    --serious-bg: rgba(194,65,12,0.13); --critical-bg: rgba(177,64,42,0.13);
+    --chip-bg: #eee2c9; --shadow: 0 1px 3px rgba(58,48,32,0.08), 0 4px 14px rgba(58,48,32,0.06);
+  }
+  /* Slate — neutral dark with a blue/slate tint */
+  [data-theme="slate"] {
+    --page: #13151b; --surface: #1c1f27; --ink: #eef0f5; --ink-2: #adb1bd; --muted: #888d9a;
+    --hairline: #2d313b; --ring: rgba(238,240,245,0.16);
+    --accent: #eef0f5; --accent-ink: #13151b;
+    --good: #4ade80; --warning: #fcd34d; --serious: #fb923c; --critical: #f87171;
+    --good-bg: rgba(74,222,128,0.15); --warning-bg: rgba(252,211,77,0.13);
+    --serious-bg: rgba(251,146,60,0.15); --critical-bg: rgba(248,113,113,0.17);
+    --chip-bg: #262a33; --shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  /* Solarized — the classic teal/tan dark palette */
+  [data-theme="solarized"] {
+    --page: #002b36; --surface: #073642; --ink: #eee8d5; --ink-2: #93a1a1; --muted: #839496;
+    --hairline: #0f4d5c; --ring: rgba(38,139,210,0.30);
+    --accent: #268bd2; --accent-ink: #002b36;
+    --good: #859900; --warning: #b58900; --serious: #cb4b16; --critical: #dc322f;
+    --good-bg: rgba(133,153,0,0.16); --warning-bg: rgba(181,137,0,0.16);
+    --serious-bg: rgba(203,75,22,0.16); --critical-bg: rgba(220,50,47,0.16);
+    --chip-bg: #0a4250; --shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  /* Synthwave — purple with neon pink/green */
+  [data-theme="synthwave"] {
+    --page: #170e26; --surface: #221537; --ink: #f3e9ff; --ink-2: #cbb3ea; --muted: #9d82c4;
+    --hairline: #3d2a5f; --ring: rgba(255,93,143,0.30);
+    --accent: #ff5d8f; --accent-ink: #170e26;
+    --good: #50fa7b; --warning: #ffd166; --serious: #ff9e64; --critical: #ff5d8f;
+    --good-bg: rgba(80,250,123,0.14); --warning-bg: rgba(255,209,102,0.13);
+    --serious-bg: rgba(255,158,100,0.15); --critical-bg: rgba(255,93,143,0.17);
+    --chip-bg: #2e1d49; --shadow: 0 1px 3px rgba(0,0,0,0.5);
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -53,11 +107,12 @@
   .title h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.01em; }
   .title p { margin: 0; font-size: 0.8rem; color: var(--ink-2); }
   .top .spacer { flex: 1; }
-  .icon-btn {
+  .theme-sel {
     border: 1px solid var(--hairline); background: var(--surface); color: var(--ink);
-    border-radius: 12px; width: 40px; height: 40px; font-size: 1.05rem; cursor: pointer;
+    border-radius: 12px; height: 40px; padding: 0 10px; font-size: 0.85rem; cursor: pointer;
   }
-  .icon-btn:hover { border-color: var(--muted); }
+  .theme-sel:hover { border-color: var(--muted); }
+  .theme-sel:focus { outline: 2px solid var(--ring); border-color: var(--accent); }
 
   /* ---- Stat tiles ---- */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
@@ -192,7 +247,15 @@
       <p>CPAP supplies: clean, replace, reorder</p>
     </div>
     <div class="spacer"></div>
-    <button class="icon-btn" id="themeBtn" title="Toggle Midnight/light theme" aria-label="Toggle theme">🌗</button>
+    <select class="theme-sel" id="themeSel" aria-label="Theme">
+      <option value="forest">Forest</option>
+      <option value="light">Light</option>
+      <option value="midnight">Midnight</option>
+      <option value="sepia">Sepia</option>
+      <option value="slate">Slate</option>
+      <option value="solarized">Solarized</option>
+      <option value="synthwave">Synthwave</option>
+    </select>
   </header>
 
   <div class="stats" id="stats" hidden>
@@ -646,11 +709,10 @@ document.querySelector('.filters').addEventListener('click', (e) => {
 });
 
 /* ---------------- Theme ---------------- */
-$('themeBtn').addEventListener('click', () => {
-  const cur = document.documentElement.getAttribute('data-theme');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('pap-theme', next);
+$('themeSel').value = document.documentElement.getAttribute('data-theme');
+$('themeSel').addEventListener('change', (e) => {
+  document.documentElement.setAttribute('data-theme', e.target.value);
+  localStorage.setItem('pap-theme', e.target.value);
 });
 
 /* ---------------- Backup ---------------- */
