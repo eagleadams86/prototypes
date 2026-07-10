@@ -426,10 +426,14 @@ function cleanDue(it) {
   return daysBetween(parseDate(it.lastCleaned), today()) >= it.cleanDays;
 }
 function reorderNeeded(it) { return it.stock <= it.lowAt && replaceLeft(it) <= 30; }
-function severity(days) {
+/* Urgency thresholds scale with the item's replacement cycle, so short-cycle
+   consumables (e.g. 2-week filters) aren't "replace soon" the day they're
+   replaced: warning at ≤40% of the cycle, serious at ≤20% (capped at 14/7 days). */
+function soonAt(it) { return Math.min(14, Math.ceil(it.replaceDays * 0.4)); }
+function severity(it, days) {
   if (days < 0) return 'critical';
-  if (days <= 7) return 'serious';
-  if (days <= 14) return 'warning';
+  if (days <= Math.min(7, Math.ceil(it.replaceDays * 0.2))) return 'serious';
+  if (days <= soonAt(it)) return 'warning';
   return 'good';
 }
 function cleanLabel(n) { return n === 0 ? 'no cleaning' : n === 1 ? 'clean daily' : n === 7 ? 'clean weekly' : `clean every ${n} days`; }
@@ -443,7 +447,7 @@ function replaceLabel(n) {
 function badges(it) {
   const out = [];
   const left = replaceLeft(it);
-  const sev = severity(left);
+  const sev = severity(it, left);
   if (left < 0) {
     out.push(`<span class="badge b-critical"><span class="dot"></span>↻ Replace overdue by ${-left} day${left === -1 ? '' : 's'}</span>`);
   } else {
@@ -470,9 +474,9 @@ function matches(it) {
   }
   switch (filter) {
     case 'clean': return cleanDue(it);
-    case 'replace': return replaceLeft(it) <= 14;
+    case 'replace': return replaceLeft(it) <= soonAt(it);
     case 'reorder': return reorderNeeded(it);
-    case 'ok': return !cleanDue(it) && replaceLeft(it) > 14 && !reorderNeeded(it);
+    case 'ok': return !cleanDue(it) && replaceLeft(it) > soonAt(it) && !reorderNeeded(it);
     default: return true;
   }
 }
