@@ -806,9 +806,16 @@ render();
    Firestore sync (free tier). While this is null, the app is 100% local and the
    sync button stays hidden. localStorage remains the source of truth either way:
    on sign-in the newer side (by updatedAt) wins, then changes sync live. */
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCtcJiGS8ow4suvIVt5rs3S4JjzSpIiYnw",
+  authDomain: "paptrack-6c817.firebaseapp.com",
+  projectId: "paptrack-6c817",
+  storageBucket: "paptrack-6c817.firebasestorage.app",
+  messagingSenderId: "663133445971",
+  appId: "1:663133445971:web:0d363eaa75ae0fcda78ba6"
+};
 
-const SDK = 'https://www.gstatic.com/firebasejs/10.12.5/';
+const SDK = 'https://www.gstatic.com/firebasejs/12.16.0/';
 const btn = document.getElementById('syncBtn');
 const privacyNote = document.getElementById('privacyNote');
 const localTs = () => Number(localStorage.getItem('pap-updated') || 0);
