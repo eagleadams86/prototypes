@@ -604,30 +604,52 @@ $('cleanAllBtn').addEventListener('click', () => {
 
 /* ---------------- Calendar (.ics) ---------------- */
 function escICS(s) { return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
-function downloadICS(it) {
-  const due = nextReplace(it);
+function nextClean(it) {
+  const due = it.lastCleaned ? addDays(parseDate(it.lastCleaned), it.cleanDays) : today();
+  return due < today() ? today() : due;
+}
+/* The reorder reminder lands ahead of the replacement date: half the cycle for
+   short-cycle consumables, at most 30 days out (typical insurance resupply window). */
+function nextReorder(it) {
+  const d = addDays(nextReplace(it), -Math.min(30, Math.floor(it.replaceDays / 2)));
+  return d < today() ? today() : d;
+}
+function buildICS(it) {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const day = (d) => toISO(d).replace(/-/g, '');
-  const summary = `Replace CPAP ${it.name}`;
-  const lines = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PAPTrack//EN',
+  const vevent = (tag, date, summary, desc, alarm) => [
     'BEGIN:VEVENT',
-    `UID:${it.id}-${day(due)}@paptrack`,
+    `UID:${it.id}-${tag}-${day(date)}@paptrack`,
     `DTSTAMP:${stamp}`,
-    `DTSTART;VALUE=DATE:${day(due)}`,
-    `DTEND;VALUE=DATE:${day(addDays(due, 1))}`,
+    `DTSTART;VALUE=DATE:${day(date)}`,
+    `DTEND;VALUE=DATE:${day(addDays(date, 1))}`,
     `SUMMARY:${escICS(summary)}`,
-    `DESCRIPTION:${escICS(`${it.name} is due for replacement (${replaceLabel(it.replaceDays)}). Check spares and reorder if needed.`)}`,
-    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escICS(summary)}`, 'TRIGGER:-P2D', 'END:VALARM',
-    'END:VEVENT', 'END:VCALENDAR',
+    `DESCRIPTION:${escICS(desc)}`,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escICS(summary)}`, `TRIGGER:${alarm}`, 'END:VALARM',
+    'END:VEVENT',
   ];
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  const events = [
+    ...vevent('replace', nextReplace(it), `Replace CPAP ${it.name}`,
+      `${it.name} is due for replacement (${replaceLabel(it.replaceDays)}). Check spares and reorder if needed.`, '-P2D'),
+    ...vevent('reorder', nextReorder(it), `Reorder CPAP ${it.name}`,
+      `Replacement of ${it.name} is coming up on ${fmtDate(nextReplace(it))}. Check spares (${it.stock} on hand) and reorder if needed — insurance resupply windows may apply.`, '-PT0M'),
+  ];
+  // Daily-cleaned items don't need calendar nagging; weekly-or-rarer ones do.
+  if (it.cleanDays > 1) {
+    events.push(...vevent('clean', nextClean(it), `Clean CPAP ${it.name}`,
+      `${it.name} is due for cleaning (${cleanLabel(it.cleanDays)}).`, '-PT0M'));
+  }
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PAPTrack//EN', ...events, 'END:VCALENDAR'].join('\r\n');
+}
+function downloadICS(it) {
+  const blob = new Blob([buildICS(it)], { type: 'text/calendar' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'cpap-replacement.ics';
+  a.download = 'cpap-reminders.ics';
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('Calendar reminder downloaded (alarm 2 days before)');
+  const n = it.cleanDays > 1 ? 3 : 2;
+  toast(`Calendar reminders downloaded (${n} events: replace, reorder${n === 3 ? ', clean' : ''})`);
 }
 
 /* ---------------- Add / edit form ---------------- */

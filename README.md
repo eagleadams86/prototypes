@@ -84,7 +84,7 @@ Every value is editable per item, and custom items are supported for anything el
 - **Inventory & reorder** — a spares counter with −/+ steppers on every card; items are flagged **Reorder** when spares fall to the item's threshold and a replacement is due within 30 days. **Replaced today** resets the countdown and consumes a spare automatically
 - **Stat tiles** — items to clean today, next replacement (item + days), and how many supplies need reordering
 - **Search & filters** — live search plus chips: All, 🧼 Clean due, ⏰ Replace soon, 📦 Reorder, ✓ All good
-- **Calendar reminders** — one-tap `.ics` export of the next replacement date with an alarm 2 days before
+- **Calendar reminders** — one-tap `.ics` export per item with up to three events: next replacement (alarm 2 days before), a reorder reminder ahead of it (half the cycle for short-cycle consumables, at most 30 days — the typical insurance resupply window), and the next cleaning for items cleaned less often than daily
 - **Resupply tip** — footer note about insurance PAP-adherence requirements and humidifier care (distilled water, empty every morning)
 - **Private & offline** — all data in `localStorage`; JSON backup export/import; no account, no server
 - **7 themes, Midnight by default** — dropdown in the header with the same theme family as the lottery pages, listed alphabetically (Forest, Light, Midnight, Sepia, Slate, Solarized, Synthwave); choice saved in `localStorage` and applied before first paint
