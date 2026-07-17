@@ -1,6 +1,6 @@
 # Claude Prototypes
 
-Self-contained, no-server web app prototypes. Each app is a single HTML file — open it directly in a browser (`file://` works) or use the GitHub Pages links below. No build step, no dependencies, no accounts.
+Self-contained, no-server web app prototypes. Each app is a single HTML file — open it directly in a browser (`file://` works) or use the GitHub Pages links below. No build step, and no account is ever required (PAPTrack offers an optional Google sign-in purely for cross-device sync).
 
 - **ReturnRadar:** [eagleadams86.github.io/prototypes/returnradar.html](https://eagleadams86.github.io/prototypes/returnradar.html)
 - **PAPTrack:** [eagleadams86.github.io/prototypes/cpap-tracker.html](https://eagleadams86.github.io/prototypes/cpap-tracker.html)
@@ -87,12 +87,12 @@ Every value is editable per item, and custom items are supported for anything el
 - **Calendar reminders** — one-tap `.ics` export per item with up to three events: next replacement (alarm 2 days before), a reorder reminder ahead of it (half the cycle for short-cycle consumables, at most 30 days — the typical insurance resupply window), and the next cleaning for items cleaned less often than daily
 - **Resupply tip** — footer note about insurance PAP-adherence requirements and humidifier care (distilled water, empty every morning)
 - **Private & offline** — all data in `localStorage`; JSON backup export/import; no account required
-- **Optional cross-device sync** — a dormant Firebase module (see below) adds Google sign-in + Firestore sync so phone and computer share the same data
+- **Cross-device sync (optional)** — a **☁️ Sign in to sync** button in the header signs in with Google and syncs via Firestore, so phone and computer share the same data live; signed out, the app is 100% local (see below)
 - **7 themes, Midnight by default** — dropdown in the header with the same theme family as the lottery pages, listed alphabetically (Forest, Light, Midnight, Sepia, Slate, Solarized, Synthwave); choice saved in `localStorage` and applied before first paint
 
-### Enabling cross-device sync (Firebase, free tier)
+### Cross-device sync (Firebase, free tier)
 
-PAPTrack ships with a dormant sync module. While `FIREBASE_CONFIG` (bottom `<script type="module">` block in `cpap-tracker.html`) is `null`, the app is 100% local and no sync UI appears. To enable:
+Sync is **enabled** in this deployment, backed by the `paptrack-6c817` Firebase project — the `FIREBASE_CONFIG` object at the bottom `<script type="module">` block of `cpap-tracker.html` points at it. Setting that constant back to `null` returns the app to fully-local mode and hides all sync UI. To recreate the setup from scratch (e.g. in a fork):
 
 1. At [console.firebase.google.com](https://console.firebase.google.com), create a project (Analytics not needed)
 2. **Build → Authentication → Get started → Google** — enable the Google sign-in provider
@@ -118,13 +118,17 @@ The config object is not a secret (access is controlled by the rules above, whic
 
 ```
 GitHub Pages (static hosting, this repo, main branch)
-    ├── returnradar.html ─┐
-    └── cpap-tracker.html ─┴─ single file each: HTML + CSS + JS, zero dependencies
-            └── all state ──► browser localStorage (per device)
-                              backup/restore via JSON export & import
+    ├── returnradar.html — single file, zero dependencies
+    │       └── all state ──► browser localStorage (per device)
+    └── cpap-tracker.html — single file; loads the Firebase SDK from gstatic.com
+            ├── all state ──► browser localStorage (source of truth, works offline)
+            └── signed in ──► Firestore doc paptrack/{uid} (last-write-wins by
+                              updatedAt; live onSnapshot updates on other devices)
+
+Both apps: backup/restore via JSON export & import.
 ```
 
-There is intentionally no backend. Each prototype must run from a double-clicked file just as well as from GitHub Pages.
+There is no server of our own — the only backend is PAPTrack's optional Firebase (auth + one Firestore document per user, free tier). Each prototype must still work from a double-clicked file just as well as from GitHub Pages; PAPTrack degrades to fully-local mode when Firebase is unreachable or the user is signed out.
 
 ---
 
