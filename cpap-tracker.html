@@ -444,6 +444,14 @@ function replaceLabel(n) {
 }
 
 /* ---------------- Rendering ---------------- */
+function lastDates(it) {
+  const parts = [`↻ Last replaced ${esc(fmtDate(parseDate(it.lastReplaced)))}`];
+  if (it.cleanDays > 0) {
+    parts.push(it.lastCleaned ? `🧼 Last cleaned ${esc(fmtDate(parseDate(it.lastCleaned)))}` : '🧼 Not cleaned yet');
+  }
+  return parts.join(' · ');
+}
+
 function badges(it) {
   const out = [];
   const left = replaceLeft(it);
@@ -510,6 +518,7 @@ function render() {
     <article class="card" data-id="${it.id}">
       <div class="rowtop"><h3>${esc(it.emoji)} ${esc(it.name)}</h3></div>
       <div class="schedule">${esc(cleanLabel(it.cleanDays))} · ${esc(replaceLabel(it.replaceDays))}</div>
+      <div class="schedule">${lastDates(it)}</div>
       <div class="badges">${badges(it)}</div>
       ${it.notes ? `<p class="notes">${esc(it.notes)}</p>` : ''}
       <div class="stock">
