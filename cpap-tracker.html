@@ -444,10 +444,14 @@ function replaceLabel(n) {
 }
 
 /* ---------------- Rendering ---------------- */
+function agoLabel(iso) {
+  const d = daysBetween(parseDate(iso), today());
+  return d === 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+}
 function lastDates(it) {
-  const parts = [`↻ Last replaced ${esc(fmtDate(parseDate(it.lastReplaced)))}`];
+  const parts = [`↻ Last replaced ${agoLabel(it.lastReplaced)}`];
   if (it.cleanDays > 0) {
-    parts.push(it.lastCleaned ? `🧼 Last cleaned ${esc(fmtDate(parseDate(it.lastCleaned)))}` : '🧼 Not cleaned yet');
+    parts.push(it.lastCleaned ? `🧼 Last cleaned ${agoLabel(it.lastCleaned)}` : '🧼 Not cleaned yet');
   }
   return parts.join(' · ');
 }

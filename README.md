@@ -80,7 +80,7 @@ Every value is editable per item, and custom items are supported for anything el
 - **One-tap setup** — "Load full-face kit" or "Load nasal kit" adds the six matching supplies at once; then set each item's real "last replaced" date via Edit
 - **Replacement countdowns** — every item shows its next due date with urgency-colored badges (red when overdue, orange/amber as the deadline nears, otherwise green); the list sorts most-urgent first. Thresholds scale with each item's cycle (amber at ≤40%, orange at ≤20%, capped at 14/7 days), so a 2-week consumable isn't flagged "replace soon" the day it's replaced
 - **Cleaning tracker** — items show "Cleaning due" or "Cleaned today/yesterday/N days ago"; one-tap **Mark cleaned**, plus a **Mark all due items cleaned** button for the daily routine
-- **Last cleaned & last replaced dates** — every card shows the exact date of the last replacement and last cleaning ("Not cleaned yet" until the first one)
+- **Last cleaned & last replaced** — every card shows how long ago the last replacement and cleaning happened (today / yesterday / N days ago; "Not cleaned yet" until the first one)
 - **Inventory & reorder** — a spares counter with −/+ steppers on every card; items are flagged **Reorder** when spares fall to the item's threshold and a replacement is due within 30 days. **Replaced today** resets the countdown and consumes a spare automatically
 - **Stat tiles** — items to clean today, next replacement (item + days), and how many supplies need reordering
 - **Search & filters** — live search plus chips: All, 🧼 Clean due, ⏰ Replace soon, 📦 Reorder, ✓ All good
