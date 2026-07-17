@@ -86,8 +86,31 @@ Every value is editable per item, and custom items are supported for anything el
 - **Search & filters** — live search plus chips: All, 🧼 Clean due, ⏰ Replace soon, 📦 Reorder, ✓ All good
 - **Calendar reminders** — one-tap `.ics` export per item with up to three events: next replacement (alarm 2 days before), a reorder reminder ahead of it (half the cycle for short-cycle consumables, at most 30 days — the typical insurance resupply window), and the next cleaning for items cleaned less often than daily
 - **Resupply tip** — footer note about insurance PAP-adherence requirements and humidifier care (distilled water, empty every morning)
-- **Private & offline** — all data in `localStorage`; JSON backup export/import; no account, no server
+- **Private & offline** — all data in `localStorage`; JSON backup export/import; no account required
+- **Optional cross-device sync** — a dormant Firebase module (see below) adds Google sign-in + Firestore sync so phone and computer share the same data
 - **7 themes, Midnight by default** — dropdown in the header with the same theme family as the lottery pages, listed alphabetically (Forest, Light, Midnight, Sepia, Slate, Solarized, Synthwave); choice saved in `localStorage` and applied before first paint
+
+### Enabling cross-device sync (Firebase, free tier)
+
+PAPTrack ships with a dormant sync module. While `FIREBASE_CONFIG` (bottom `<script type="module">` block in `cpap-tracker.html`) is `null`, the app is 100% local and no sync UI appears. To enable:
+
+1. At [console.firebase.google.com](https://console.firebase.google.com), create a project (Analytics not needed)
+2. **Build → Authentication → Get started → Google** — enable the Google sign-in provider
+3. **Authentication → Settings → Authorized domains** — add `eagleadams86.github.io`
+4. **Build → Firestore Database → Create database** (production mode), then paste these **Rules**:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /paptrack/{uid} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+5. **Project settings → Your apps → Add app → Web** — copy the `firebaseConfig` object and paste it as the value of `FIREBASE_CONFIG` in `cpap-tracker.html`
+
+The config object is not a secret (access is controlled by the rules above, which restrict each user to their own document). How sync behaves: `localStorage` stays the source of truth; on sign-in, whichever side changed most recently (`updatedAt`) wins; after that, edits push (debounced) and other devices update live. Signing out or losing connectivity just leaves the local copy in charge.
 
 ---
 

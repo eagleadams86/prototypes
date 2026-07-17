@@ -247,6 +247,7 @@
       <p>CPAP supplies: clean, replace, reorder</p>
     </div>
     <div class="spacer"></div>
+    <button class="act" id="syncBtn" hidden>☁️ Sign in to sync</button>
     <select class="theme-sel" id="themeSel" aria-label="Theme">
       <option value="forest">Forest</option>
       <option value="light">Light</option>
@@ -302,7 +303,7 @@
   </div>
 
   <footer>
-    <div>🔒 100% private — everything is stored only in this browser. No account, no server, works offline.</div>
+    <div id="privacyNote">🔒 100% private — everything is stored only in this browser. No account, no server, works offline.</div>
     <div class="links">
       <button id="exportBtn">Export backup</button>
       <button id="importBtn">Import backup</button>
@@ -406,7 +407,11 @@ function load() {
     return Array.isArray(parsed) ? parsed : [];
   } catch { return []; }
 }
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  localStorage.setItem('pap-updated', String(Date.now()));
+  if (window.cloudPush) window.cloudPush();
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 /* ---------------- Date math ---------------- */
@@ -782,8 +787,123 @@ $('importFile').addEventListener('change', async (e) => {
   }
 });
 
+/* ---------------- Cloud sync hooks (used by the sync module below) ---------------- */
+window.paptrackGet = () => items;
+window.paptrackAdopt = (newItems, ts) => {
+  items = Array.isArray(newItems) ? newItems : [];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  localStorage.setItem('pap-updated', String(ts || Date.now()));
+  render();
+};
+
 fillPresetOptions();
 render();
+</script>
+
+<script type="module">
+/* ───────────────────────── Optional cross-device sync ─────────────────────────
+   Paste your Firebase web-app config object below to enable Google sign-in +
+   Firestore sync (free tier). While this is null, the app is 100% local and the
+   sync button stays hidden. localStorage remains the source of truth either way:
+   on sign-in the newer side (by updatedAt) wins, then changes sync live. */
+const FIREBASE_CONFIG = null;
+
+const SDK = 'https://www.gstatic.com/firebasejs/10.12.5/';
+const btn = document.getElementById('syncBtn');
+const privacyNote = document.getElementById('privacyNote');
+const localTs = () => Number(localStorage.getItem('pap-updated') || 0);
+
+if (FIREBASE_CONFIG) {
+  init().catch((e) => { console.warn('Sync unavailable:', e); btn.hidden = true; });
+}
+
+let A, F, auth, db, user = null, unsub = null, pushTimer = null;
+
+async function init() {
+  const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+    import(SDK + 'firebase-app.js'),
+    import(SDK + 'firebase-auth.js'),
+    import(SDK + 'firebase-firestore.js'),
+  ]);
+  A = authMod; F = fsMod;
+  const app = initializeApp(FIREBASE_CONFIG);
+  auth = A.getAuth(app);
+  db = F.getFirestore(app);
+  A.onAuthStateChanged(auth, (u) => {
+    user = u;
+    updateUI();
+    if (unsub) { unsub(); unsub = null; }
+    if (u) startSync().catch((e) => console.warn('sync failed', e));
+  });
+  A.getRedirectResult(auth).catch(() => {});
+  btn.hidden = false;
+  btn.addEventListener('click', onClick);
+}
+
+function updateUI() {
+  if (user) {
+    btn.textContent = `☁️ ${user.displayName ? user.displayName.split(' ')[0] : user.email}`;
+    btn.title = 'Syncing across devices — tap to sign out';
+    privacyNote.textContent = `☁️ Signed in as ${user.email} — your data syncs privately through your own Firebase account and still works offline.`;
+  } else {
+    btn.textContent = '☁️ Sign in to sync';
+    btn.title = 'Sign in with Google to see the same data on all your devices';
+    privacyNote.textContent = '🔒 Private — stored in this browser; sign in to sync your own devices. No account required to use the app.';
+  }
+}
+
+async function onClick() {
+  if (user) {
+    if (confirm('Sign out? The app keeps working with the local copy on this device.')) A.signOut(auth);
+    return;
+  }
+  const provider = new A.GoogleAuthProvider();
+  try {
+    await A.signInWithPopup(auth, provider);
+  } catch (e) {
+    // Popups are unreliable on mobile Safari — fall back to a full-page redirect.
+    if (e && /popup|operation-not-supported/.test(String(e.code))) {
+      try { await A.signInWithRedirect(auth, provider); return; } catch { /* fall through */ }
+    }
+    if (String(e && e.code) !== 'auth/popup-closed-by-user') {
+      window.toast('Sign-in failed — check the Firebase setup');
+      console.warn('sign-in error', e);
+    }
+  }
+}
+
+const docRef = () => F.doc(db, 'paptrack', user.uid);
+
+async function startSync() {
+  const snap = await F.getDoc(docRef());
+  const remote = snap.exists() ? snap.data() : null;
+  if (remote && remote.updatedAt > localTs()) {
+    window.paptrackAdopt(remote.items, remote.updatedAt);
+    window.toast('Loaded your data from the cloud ☁️');
+  } else {
+    await pushNow();
+  }
+  unsub = F.onSnapshot(docRef(), (s) => {
+    if (s.metadata.hasPendingWrites || !s.exists()) return;
+    const r = s.data();
+    if (r.updatedAt > localTs()) {
+      window.paptrackAdopt(r.items, r.updatedAt);
+      window.toast('Synced from another device ☁️');
+    }
+  });
+}
+
+async function pushNow() {
+  if (!user) return;
+  await F.setDoc(docRef(), { items: window.paptrackGet(), updatedAt: localTs() || Date.now() });
+}
+
+/* Called by save() on every local change; debounced so rapid edits batch up. */
+window.cloudPush = () => {
+  if (!user) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => pushNow().catch((e) => console.warn('push failed', e)), 1200);
+};
 </script>
 </body>
 </html>
