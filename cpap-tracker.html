@@ -390,6 +390,8 @@
 .changelog a:hover{color:var(--ink)}
 </style>
 <script>
+/* "Recent changes": on first open, fetch this file's last 10 commit subjects from
+   the GitHub API. Commit subjects are user-facing here — see CLAUDE.md. */
 (function(){
   var box=document.getElementById('cl-box'),loaded=false;
   box.addEventListener('toggle',function(){
@@ -452,18 +454,22 @@ function load() {
 }
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  // 'pap-updated' is the conflict-resolution timestamp for cloud sync: newer side wins.
   localStorage.setItem('pap-updated', String(Date.now()));
   if (window.cloudPush) window.cloudPush();
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
-/* ---------------- Date math ---------------- */
+/* ---------------- Date math ----------------
+   All dates are local-midnight Date objects. parseDate splits 'YYYY-MM-DD' by hand
+   because new Date('YYYY-MM-DD') parses as UTC midnight, which shifts to the
+   previous day in timezones west of UTC. */
 function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
 function toISO(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function fmtDate(d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
-function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+function daysBetween(a, b) { return Math.round((b - a) / 86400000); } // round absorbs DST's ±1h
 
 /* ---------------- Derived state ---------------- */
 function nextReplace(it) { return addDays(parseDate(it.lastReplaced), it.replaceDays); }
@@ -475,6 +481,9 @@ function cleanDue(it) {
   if (!it.lastCleaned) return true;
   return daysBetween(parseDate(it.lastCleaned), today()) >= it.cleanDays;
 }
+/* Low stock alone doesn't flag a reorder — a replacement must also be near (≤30
+   days out), so a long-cycle item with no spares doesn't nag months in advance.
+   As-needed consumables (replaceDays 0) flag on low stock alone. */
 function reorderNeeded(it) { return it.stock <= it.lowAt && (it.replaceDays === 0 || replaceLeft(it) <= 30); }
 /* Badge urgency thresholds scale with the item's replacement cycle, so short-cycle
    consumables (e.g. 2-week filters) don't look urgent the day they're
@@ -797,7 +806,9 @@ function loadKit(keys) {
     const p = PRESETS.find(x => x.key === key);
     items.push({
       id: uid(), emoji: p.emoji, name: p.name, cleanDays: p.cleanDays, replaceDays: p.replaceDays,
-      lastReplaced: iso, lastCleaned: null, stock: key === 'filters' ? 4 : 0, lowAt: 1,
+      lastReplaced: iso, lastCleaned: null,
+      stock: key === 'filters' ? 4 : 0, // filters ship in multipacks, so seed a realistic spare count
+      lowAt: 1,
       notes: p.note, createdAt: Date.now(),
     });
   });
@@ -871,10 +882,12 @@ render();
 
 <script type="module">
 /* ───────────────────────── Optional cross-device sync ─────────────────────────
-   Paste your Firebase web-app config object below to enable Google sign-in +
-   Firestore sync (free tier). While this is null, the app is 100% local and the
-   sync button stays hidden. localStorage remains the source of truth either way:
-   on sign-in the newer side (by updatedAt) wins, then changes sync live. */
+   Google sign-in + Firestore sync (free tier). The config below is Firebase's
+   public client config, not a secret — data access is enforced by Firestore
+   security rules, not this key. Set FIREBASE_CONFIG to null to disable sync
+   entirely (the button stays hidden and the app is 100% local). localStorage
+   remains the source of truth either way: on sign-in the newer side (by the
+   'pap-updated' timestamp) wins, then changes sync live. */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCtcJiGS8ow4suvIVt5rs3S4JjzSpIiYnw",
   authDomain: "paptrack-6c817.firebaseapp.com",
@@ -911,7 +924,7 @@ async function init() {
     if (unsub) { unsub(); unsub = null; }
     if (u) startSync().catch((e) => console.warn('sync failed', e));
   });
-  A.getRedirectResult(auth).catch(() => {});
+  A.getRedirectResult(auth).catch(() => {}); // completes a mobile redirect sign-in, if one is in flight
   btn.hidden = false;
   btn.addEventListener('click', onClick);
 }
