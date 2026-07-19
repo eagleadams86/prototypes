@@ -773,8 +773,10 @@ $('search').addEventListener('input', (e) => { query = e.target.value.trim(); re
 document.querySelector('.filters').addEventListener('click', (e) => {
   const chip = e.target.closest('.filter-chip');
   if (!chip) return;
-  filter = chip.dataset.filter;
-  document.querySelectorAll('.filter-chip').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+  // Clicking the active chip again deselects it, back to the All view.
+  filter = filter === chip.dataset.filter ? 'all' : chip.dataset.filter;
+  const active = document.querySelector(`.filter-chip[data-filter="${filter}"]`);
+  document.querySelectorAll('.filter-chip').forEach(c => c.setAttribute('aria-pressed', String(c === active)));
   render();
 });
 
