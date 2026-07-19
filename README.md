@@ -13,6 +13,7 @@ Self-contained, no-server web app prototypes. Each app is a single HTML file —
 |------|-------------|
 | `returnradar.html` | Return-window & warranty deadline tracker — the entire app in one file |
 | `cpap-tracker.html` | PAPTrack: CPAP supply cleaning, replacement & reorder tracker — one file |
+| `CPAP_IOS_PORT_PLAN.md` | Blueprint for porting PAPTrack to a native iOS app (SwiftUI, planned as a separate repo) |
 | `favicon.ico` | Shared favicon (same one used across the dashboard and lottery repos) |
 
 ---
