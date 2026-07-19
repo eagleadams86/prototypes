@@ -431,9 +431,10 @@ function cleanDue(it) {
   return daysBetween(parseDate(it.lastCleaned), today()) >= it.cleanDays;
 }
 function reorderNeeded(it) { return it.stock <= it.lowAt && replaceLeft(it) <= 30; }
-/* Urgency thresholds scale with the item's replacement cycle, so short-cycle
-   consumables (e.g. 2-week filters) aren't "replace soon" the day they're
-   replaced: warning at ≤40% of the cycle, serious at ≤20% (capped at 14/7 days). */
+/* Badge urgency thresholds scale with the item's replacement cycle, so short-cycle
+   consumables (e.g. 2-week filters) don't look urgent the day they're
+   replaced: warning at ≤40% of the cycle, serious at ≤20% (capped at 14/7 days).
+   The "Replace due" filter is stricter: only items due today or overdue. */
 function soonAt(it) { return Math.min(14, Math.ceil(it.replaceDays * 0.4)); }
 function severity(it, days) {
   if (days < 0) return 'critical';
@@ -491,9 +492,9 @@ function matches(it) {
   }
   switch (filter) {
     case 'clean': return cleanDue(it);
-    case 'replace': return replaceLeft(it) <= soonAt(it);
+    case 'replace': return replaceLeft(it) <= 0;
     case 'reorder': return reorderNeeded(it);
-    case 'ok': return !cleanDue(it) && replaceLeft(it) > soonAt(it) && !reorderNeeded(it);
+    case 'ok': return !cleanDue(it) && replaceLeft(it) > 0 && !reorderNeeded(it);
     default: return true;
   }
 }
