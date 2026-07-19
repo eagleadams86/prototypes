@@ -72,6 +72,7 @@ Keeps CPAP supplies on schedule three ways at once: **cleaning** (daily/weekly r
 | 🛟 Full Face Cushions | daily | every month |
 | 👃 Nasal Cushions & Pillows | daily | every 2 weeks |
 | 💧 Humidifier Chamber | daily | every 6 months |
+| 💦 Distilled Water | — | as needed |
 
 Every value is editable per item, and custom items are supported for anything else (chinstrap, SD card, wipes…).
 
@@ -79,6 +80,7 @@ Every value is editable per item, and custom items are supported for anything el
 
 - **One-tap setup** — "Load full-face kit" or "Load nasal kit" adds the six matching supplies at once; then set each item's real "last replaced" date via Edit
 - **Replacement countdowns** — every item shows its next due date with urgency-colored badges (red when overdue, orange/amber as the deadline nears, otherwise green); the list sorts most-urgent first. Thresholds scale with each item's cycle (amber at ≤40%, orange at ≤20%, capped at 14/7 days), so a 2-week consumable isn't flagged "replace soon" the day it's replaced
+- **As-needed consumables** — set "Replace every" to 0 (or tap the **As needed** chip) for items with no fixed schedule, like distilled water: no countdown or due date, they sort last, and reordering is driven purely by the spares count
 - **Cleaning tracker** — items show "Cleaning due" or "Cleaned today/yesterday/N days ago"; one-tap **Mark cleaned**, plus a **Mark all due items cleaned** button for the daily routine
 - **Last cleaned & last replaced** — every card shows how long ago the last replacement and cleaning happened (today / yesterday / N days ago; "Not cleaned yet" until the first one)
 - **Inventory & reorder** — a spares counter with −/+ steppers on every card; items are flagged **Reorder** when spares fall to the item's threshold and a replacement is due within 30 days. **Replaced today** resets the countdown and consumes a spare automatically
