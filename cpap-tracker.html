@@ -374,6 +374,15 @@
   </form>
 </dialog>
 
+<dialog id="syncChoiceDialog">
+  <h2>Which data do you want to keep?</h2>
+  <p id="syncChoiceBody" style="color:var(--ink-2); font-size:0.88rem; margin:0 0 16px;"></p>
+  <div class="formfoot">
+    <button type="button" class="act" id="syncKeepDeviceBtn">Keep this device</button>
+    <button type="button" class="btn" id="syncKeepGoogleBtn">Keep Google's data</button>
+  </div>
+</dialog>
+
 <details class="changelog" id="cl-box">
   <summary>Recent changes</summary>
   <ol id="cl-list"><li>Loading&hellip;</li></ol>
@@ -886,8 +895,11 @@ render();
    public client config, not a secret — data access is enforced by Firestore
    security rules, not this key. Set FIREBASE_CONFIG to null to disable sync
    entirely (the button stays hidden and the app is 100% local). localStorage
-   remains the source of truth either way: on sign-in the newer side (by the
-   'pap-updated' timestamp) wins, then changes sync live. */
+   remains the source of truth either way. The first time a given Google account syncs on
+   this browser, if both sides already have items the user is asked which to keep (see
+   chooseSyncSource) rather than silently picking one by timestamp — that guesswork is what
+   wiped a browser's data once already. After that first reconciliation, and for live
+   updates from other devices, the newer side (by the 'pap-updated' timestamp) wins. */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCtcJiGS8ow4suvIVt5rs3S4JjzSpIiYnw",
   authDomain: "paptrack-6c817.firebaseapp.com",
@@ -963,15 +975,58 @@ async function onClick() {
 
 const docRef = () => F.doc(db, 'paptrack', user.uid);
 
+/* Shows the syncChoiceDialog and resolves to true if the user wants to keep Google's copy,
+   false to keep this device's copy. Escape/backdrop-dismiss defaults to false (the
+   non-destructive choice — it just skips this push instead of overwriting either side). */
+function chooseSyncSource(localCount, remoteCount, remoteUpdatedAt) {
+  return new Promise((resolve) => {
+    const dlg = document.getElementById('syncChoiceDialog');
+    const body = document.getElementById('syncChoiceBody');
+    const when = remoteUpdatedAt ? new Date(remoteUpdatedAt).toLocaleString() : 'an earlier sign-in';
+    body.textContent = `This device has ${localCount} item${localCount === 1 ? '' : 's'} saved locally. Your Google account already has ${remoteCount} item${remoteCount === 1 ? '' : 's'} (last updated ${when}). Pick which to keep — the other copy will be replaced.`;
+    const deviceBtn = document.getElementById('syncKeepDeviceBtn');
+    const googleBtn = document.getElementById('syncKeepGoogleBtn');
+    const preventCancel = (e) => e.preventDefault();
+    function finish(keepGoogle) {
+      deviceBtn.removeEventListener('click', onDevice);
+      googleBtn.removeEventListener('click', onGoogle);
+      dlg.removeEventListener('cancel', preventCancel);
+      dlg.close();
+      resolve(keepGoogle);
+    }
+    const onDevice = () => finish(false);
+    const onGoogle = () => finish(true);
+    deviceBtn.addEventListener('click', onDevice);
+    googleBtn.addEventListener('click', onGoogle);
+    dlg.addEventListener('cancel', preventCancel);
+    dlg.showModal();
+  });
+}
+
 async function startSync() {
   const snap = await F.getDoc(docRef());
   const remote = snap.exists() ? snap.data() : null;
-  if (remote && remote.updatedAt > localTs()) {
+  const local = window.paptrackGet();
+  // Only ask once per account per browser — after the first reconciliation, both sides are
+  // assumed caught up and ordinary timestamp-wins sync is enough. Re-prompts if a different
+  // Google account signs in on this browser.
+  const isFirstSyncForAccount = localStorage.getItem('pap-sync-uid') !== user.uid;
+  if (isFirstSyncForAccount && remote && Array.isArray(remote.items) && remote.items.length && local.length) {
+    const keepGoogle = await chooseSyncSource(local.length, remote.items.length, remote.updatedAt);
+    if (keepGoogle) {
+      window.paptrackAdopt(remote.items, remote.updatedAt);
+      window.toast('Loaded your data from the cloud ☁️');
+    } else {
+      await pushNow();
+      window.toast('Kept this device’s data');
+    }
+  } else if (remote && remote.updatedAt > localTs()) {
     window.paptrackAdopt(remote.items, remote.updatedAt);
     window.toast('Loaded your data from the cloud ☁️');
   } else {
     await pushNow();
   }
+  localStorage.setItem('pap-sync-uid', user.uid);
   unsub = F.onSnapshot(docRef(), (s) => {
     if (s.metadata.hasPendingWrites || !s.exists()) return;
     const r = s.data();

@@ -112,7 +112,7 @@ Sync is **enabled** in this deployment, backed by the `paptrack-6c817` Firebase 
    ```
 5. **Project settings → Your apps → Add app → Web** — copy the `firebaseConfig` object and paste it as the value of `FIREBASE_CONFIG` in `cpap-tracker.html`
 
-The config object is not a secret (access is controlled by the rules above, which restrict each user to their own document). How sync behaves: `localStorage` stays the source of truth; on sign-in, whichever side changed most recently (`updatedAt`) wins; after that, edits push (debounced) and other devices update live. Signing out or losing connectivity just leaves the local copy in charge.
+The config object is not a secret (access is controlled by the rules above, which restrict each user to their own document). How sync behaves: `localStorage` stays the source of truth. The **first** time a given Google account signs in on a browser, if both the browser and the cloud already have items saved, a dialog asks which to keep ("Keep this device" vs. "Keep Google's data") instead of guessing — silently picking the most-recently-changed side once wiped out a browser's data when an unrelated/stale cloud doc happened to have a newer timestamp. After that first reconciliation (tracked per-account via a `pap-sync-uid` flag in `localStorage`), and for live updates pushed from other devices, whichever side changed most recently (`updatedAt`) wins as before. Signing out or losing connectivity just leaves the local copy in charge.
 
 ---
 
