@@ -83,9 +83,10 @@ Every value is editable per item, and custom items are supported for anything el
 - **As-needed consumables** — set "Replace every" to 0 (or tap the **As needed** chip) for items with no fixed schedule, like distilled water: no countdown or due date, they sort last, and reordering is driven purely by the spares count
 - **Cleaning tracker** — items show "Cleaning due" or "Cleaned today/yesterday/N days ago"; one-tap **Mark cleaned**, plus a **Mark all due items cleaned** button for the daily routine
 - **Last cleaned & last replaced** — every card shows how long ago the last replacement and cleaning happened (today / yesterday / N days ago; "Not cleaned yet" until the first one)
-- **Inventory & reorder** — a spares counter with −/+ steppers on every card; items are flagged **Reorder** when spares fall to the item's threshold and a replacement is due within 30 days. **Replaced today** resets the countdown and consumes a spare automatically
-- **Stat tiles** — items to clean today, next replacement (item + days), and how many supplies need reordering
-- **Search & filters** — live search plus chips: All, 🧼 Clean due, ⏰ Replace due (due today or overdue), 📦 Reorder, ✓ All good; tapping the active chip again clears it back to All
+- **Inventory & reorder** — a spares counter with −/+ steppers on every card; items are flagged **Reorder** whenever spares fall to the item's threshold. **Replaced today** resets the countdown and consumes a spare automatically (and hides for the rest of the day so it can't be pressed twice)
+- **Card layout** — each supply is a 2×2 quadrant grid — 🧼 Cleaning · ↻ Replacing · 📦 Spares · ⚙️ Manage — matching the native iOS app
+- **Stat tiles** — three centered tiles, one per filter: 🧼 Clean due, ↻ Replace due, and 📦 Reorder, each showing a count and the affected items' emoji (or an all-clear check)
+- **Search & filters** — live search plus three chips: 🧼 Clean due, ↻ Replace due (due today or overdue), 📦 Reorder; tapping the active chip again clears it back to showing everything
 - **Calendar reminders** — one-tap `.ics` export per item with up to three events: next replacement (alarm 2 days before), a reorder reminder ahead of it (half the cycle for short-cycle consumables, at most 30 days — the typical insurance resupply window), and the next cleaning for items cleaned less often than daily
 - **Resupply tip** — footer note about insurance PAP-adherence requirements and humidifier care (distilled water, empty every morning)
 - **Private & offline** — all data in `localStorage`; JSON backup export/import; no account required

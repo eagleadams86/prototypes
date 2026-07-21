@@ -115,18 +115,17 @@
   .theme-sel:focus { outline: 2px solid var(--ring); border-color: var(--accent); }
 
   /* ---- Stat tiles ---- */
+  /* Three equal, center-aligned tiles — one per filter chip (clean / replace / reorder),
+     each a category glyph + label, a count, and an emoji sub-line. Mirrors the iOS app. */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
   .stat {
     background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px;
-    padding: 10px 12px; box-shadow: var(--shadow);
+    padding: 10px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
   }
-  .stat .label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
-  .stat .value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
-  .stat .sub { font-size: 0.75rem; color: var(--ink-2); }
-  @media (max-width: 520px) {
-    .stats { grid-template-columns: 1fr 1fr; }
-    .stat:last-child { grid-column: 1 / -1; }
-  }
+  .stat .label { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+  .stat .value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+  .stat .sub { font-size: 0.75rem; color: var(--ink-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ---- Toolbar ---- */
   .toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -135,11 +134,14 @@
     background: var(--surface); color: var(--ink); font-size: 0.95rem;
   }
   .search:focus { outline: 2px solid var(--ring); border-color: var(--accent); }
-  .filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
-  .filters::-webkit-scrollbar { display: none; }
+  .filter-block { display: flex; flex-direction: column; gap: 4px; }
+  .filters-cap { font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  /* Three chips stretched full-width so the row never scrolls (matches iOS). */
+  .filters { display: flex; gap: 6px; }
   .filter-chip {
-    flex: 0 0 auto; border: 1px solid var(--hairline); background: var(--surface); color: var(--ink-2);
-    padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+    flex: 1 1 0; border: 1px solid var(--hairline); background: var(--surface); color: var(--ink-2);
+    padding: 6px 8px; border-radius: 999px; font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+    text-align: center; overflow: hidden; text-overflow: ellipsis;
   }
   .filter-chip[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); font-weight: 600; }
   .cleanall { align-self: flex-start; }
@@ -150,35 +152,40 @@
     background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px;
     padding: 14px 14px 12px; box-shadow: var(--shadow);
   }
-  .card .rowtop { display: flex; align-items: baseline; gap: 8px; }
-  .card h3 { margin: 0; font-size: 1.02rem; flex: 1; }
-  .card .schedule { font-size: 0.8rem; color: var(--ink-2); margin: 2px 0 8px; }
-  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-  .badge {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600;
-    padding: 5px 10px; border-radius: 999px;
+  .card h3 { margin: 0; font-size: 1.02rem; }
+  .card .notes { font-size: 0.85rem; color: var(--ink-2); margin: 4px 0 0; }
+  /* 2×2 quadrant grid — cleaning · replacing · spares · manage — on chip-bg tiles, matching
+     the iOS card. align-items:stretch keeps the two tiles in a row the same height. */
+  .quadrants { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; align-items: stretch; }
+  .quad {
+    background: var(--chip-bg); border-radius: 12px; padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
   }
-  .badge .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .quad-h { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .quad-line { font-size: 0.8rem; color: var(--ink-2); }
+  .badge {
+    display: flex; align-items: flex-start; gap: 6px; font-size: 0.78rem; font-weight: 600;
+    padding: 6px 10px; border-radius: 14px; width: 100%; color: var(--ink);
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; margin-top: 5px; }
   .b-good { background: var(--good-bg); } .b-good .dot { background: var(--good); }
   .b-warning { background: var(--warning-bg); } .b-warning .dot { background: var(--warning); }
   .b-serious { background: var(--serious-bg); } .b-serious .dot { background: var(--serious); }
   .b-critical { background: var(--critical-bg); } .b-critical .dot { background: var(--critical); }
   .b-neutral { background: var(--chip-bg); } .b-neutral .dot { background: var(--muted); }
-  .card .notes { font-size: 0.85rem; color: var(--ink-2); margin: 0 0 10px; }
-  .stock { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .stock .stk-label { font-size: 0.82rem; color: var(--ink-2); }
+  .stock { display: flex; align-items: center; justify-content: center; gap: 8px; }
   .stock button {
     width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--hairline);
-    background: var(--chip-bg); color: var(--ink); font-size: 1rem; cursor: pointer; line-height: 1;
+    background: var(--surface); color: var(--ink); font-size: 1rem; cursor: pointer; line-height: 1;
   }
   .stock .count { font-weight: 700; min-width: 1.6ch; text-align: center; }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .act {
     border: 1px solid var(--hairline); background: var(--surface); color: var(--ink);
     padding: 8px 12px; border-radius: 12px; font-size: 0.85rem; cursor: pointer;
   }
   .act:hover { border-color: var(--muted); }
   .act.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .quad .act { width: 100%; text-align: center; font-size: 0.82rem; }
 
   /* ---- Empty state ---- */
   .empty { text-align: center; padding: 40px 12px; color: var(--ink-2); }
@@ -249,29 +256,29 @@
     <div class="spacer"></div>
     <button class="act" id="syncBtn" hidden>☁️ Sign in to sync</button>
     <select class="theme-sel" id="themeSel" aria-label="Theme">
-      <option value="forest">Forest</option>
-      <option value="light">Light</option>
-      <option value="midnight">Midnight</option>
-      <option value="sepia">Sepia</option>
-      <option value="slate">Slate</option>
-      <option value="solarized">Solarized</option>
-      <option value="synthwave">Synthwave</option>
+      <option value="forest">🌲 Forest</option>
+      <option value="light">☀️ Light</option>
+      <option value="midnight">✦ Midnight</option>
+      <option value="sepia">📜 Sepia</option>
+      <option value="slate">☾ Slate</option>
+      <option value="solarized">🌗 Solarized</option>
+      <option value="synthwave">🌆 Synthwave</option>
     </select>
   </header>
 
   <div class="stats" id="stats" hidden>
     <div class="stat">
-      <div class="label">Clean today</div>
+      <div class="label">🧼 Clean</div>
       <div class="value" id="statClean">0</div>
       <div class="sub" id="statCleanSub"></div>
     </div>
     <div class="stat">
-      <div class="label">Next replacement</div>
-      <div class="value" id="statNext">—</div>
-      <div class="sub" id="statNextSub"></div>
+      <div class="label">↻ Replace</div>
+      <div class="value" id="statReplace">0</div>
+      <div class="sub" id="statReplaceSub"></div>
     </div>
     <div class="stat">
-      <div class="label">Reorder</div>
+      <div class="label">📦 Reorder</div>
       <div class="value" id="statReorder">0</div>
       <div class="sub" id="statReorderSub"></div>
     </div>
@@ -279,12 +286,13 @@
 
   <div class="toolbar" id="toolbar" hidden>
     <input type="search" class="search" id="search" placeholder="Search supplies, notes…">
-    <div class="filters" role="group" aria-label="Filter supplies">
-      <button class="filter-chip" data-filter="all" aria-pressed="true">All</button>
-      <button class="filter-chip" data-filter="clean" aria-pressed="false">🧼 Clean due</button>
-      <button class="filter-chip" data-filter="replace" aria-pressed="false">⏰ Replace due</button>
-      <button class="filter-chip" data-filter="reorder" aria-pressed="false">📦 Reorder</button>
-      <button class="filter-chip" data-filter="ok" aria-pressed="false">✓ All good</button>
+    <div class="filter-block">
+      <div class="filters-cap">Filter — tap to toggle</div>
+      <div class="filters" role="group" aria-label="Filter supplies">
+        <button class="filter-chip" data-filter="clean" aria-pressed="false">🧼 Clean due</button>
+        <button class="filter-chip" data-filter="replace" aria-pressed="false">↻ Replace due</button>
+        <button class="filter-chip" data-filter="reorder" aria-pressed="false">📦 Reorder</button>
+      </div>
     </div>
     <button class="act cleanall" id="cleanAllBtn" hidden>🧼 Mark all due items cleaned</button>
   </div>
@@ -431,6 +439,8 @@
 const STORAGE_KEY = 'pap-items';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* Capitalizes just the first letter — used on the lowercase schedule labels for display. */
+const capFirst = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
 /* Presets from the standard DME "clean & replace" schedule. */
 const PRESETS = [
@@ -490,10 +500,12 @@ function cleanDue(it) {
   if (!it.lastCleaned) return true;
   return daysBetween(parseDate(it.lastCleaned), today()) >= it.cleanDays;
 }
-/* Low stock alone doesn't flag a reorder — a replacement must also be near (≤30
-   days out), so a long-cycle item with no spares doesn't nag months in advance.
-   As-needed consumables (replaceDays 0) flag on low stock alone. */
-function reorderNeeded(it) { return it.stock <= it.lowAt && (it.replaceDays === 0 || replaceLeft(it) <= 30); }
+/* Reorder whenever spares are at or below the threshold — low stock alone drives it, for
+   every item (matches the shipped iOS app; the calendar reminder still leads by ~30 days). */
+function reorderNeeded(it) { return it.stock <= it.lowAt; }
+/* True once an item was already replaced today — hides the "Replaced today" button so it
+   can't be pressed twice in a day (matches the iOS app). */
+function replacedToday(it) { return it.lastReplaced === toISO(today()); }
 /* Badge urgency thresholds scale with the item's replacement cycle, so short-cycle
    consumables (e.g. 2-week filters) don't look urgent the day they're
    replaced: warning at ≤40% of the cycle, serious at ≤20% (capped at 14/7 days).
@@ -518,39 +530,30 @@ function agoLabel(iso) {
   const d = daysBetween(parseDate(iso), today());
   return d === 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
 }
-function lastDates(it) {
-  const parts = [`↻ Last replaced ${agoLabel(it.lastReplaced)}`];
-  if (it.cleanDays > 0) {
-    parts.push(it.lastCleaned ? `🧼 Last cleaned ${agoLabel(it.lastCleaned)}` : '🧼 Not cleaned yet');
-  }
-  return parts.join(' · ');
+/* One badge per category, each returned on its own so the card can place them inside the
+   matching quadrant (cleaning / replacing / spares). */
+function badge(cls, html) { return `<span class="badge ${cls}"><span class="dot"></span>${html}</span>`; }
+function replaceBadge(it) {
+  if (it.replaceDays === 0) return badge('b-good', '↻ Replace as needed');
+  const left = replaceLeft(it);
+  if (left < 0) return badge('b-critical', `↻ Replace overdue by ${-left} day${left === -1 ? '' : 's'}`);
+  return badge(`b-${severity(it, left)}`, `↻ Replace by ${esc(fmtDate(nextReplace(it)))} · ${left} day${left === 1 ? '' : 's'} left`);
 }
-
-function badges(it) {
-  const out = [];
-  if (it.replaceDays === 0) {
-    out.push(`<span class="badge b-good"><span class="dot"></span>↻ Replace as needed</span>`);
-  } else {
-    const left = replaceLeft(it);
-    const sev = severity(it, left);
-    if (left < 0) {
-      out.push(`<span class="badge b-critical"><span class="dot"></span>↻ Replace overdue by ${-left} day${left === -1 ? '' : 's'}</span>`);
-    } else {
-      out.push(`<span class="badge b-${sev}"><span class="dot"></span>↻ Replace by ${esc(fmtDate(nextReplace(it)))} · ${left} day${left === 1 ? '' : 's'} left</span>`);
-    }
-  }
-  if (it.cleanDays > 0) {
-    if (cleanDue(it)) {
-      out.push(`<span class="badge b-warning"><span class="dot"></span>🧼 Cleaning due</span>`);
-    } else {
-      const since = daysBetween(parseDate(it.lastCleaned), today());
-      out.push(`<span class="badge b-good"><span class="dot"></span>🧼 Cleaned ${since === 0 ? 'today' : since === 1 ? 'yesterday' : since + ' days ago'}</span>`);
-    }
-  }
-  if (reorderNeeded(it)) {
-    out.push(`<span class="badge b-${it.stock === 0 ? 'critical' : 'serious'}"><span class="dot"></span>📦 Reorder — ${it.stock} spare${it.stock === 1 ? '' : 's'} left</span>`);
-  }
-  return out.join('');
+function cleanBadge(it) {
+  if (it.cleanDays <= 0) return '';
+  if (cleanDue(it)) return badge('b-warning', '🧼 Cleaning due');
+  const since = daysBetween(parseDate(it.lastCleaned), today());
+  return badge('b-good', `🧼 Cleaned ${since === 0 ? 'today' : since === 1 ? 'yesterday' : since + ' days ago'}`);
+}
+function reorderBadge(it) {
+  if (!reorderNeeded(it)) return '';
+  return badge(`b-${it.stock === 0 ? 'critical' : 'serious'}`, `📦 Reorder — ${it.stock} spare${it.stock === 1 ? '' : 's'} left`);
+}
+/* The status line under the cleaning label: "Last cleaned …", "Not cleaned yet", or (for
+   items with no cleaning schedule) "No cleaning needed" — mirrors the iOS card. */
+function cleanStatus(it) {
+  if (it.cleanDays <= 0) return 'No cleaning needed';
+  return it.lastCleaned ? `Last cleaned ${agoLabel(it.lastCleaned)}` : 'Not cleaned yet';
 }
 
 function matches(it) {
@@ -562,7 +565,6 @@ function matches(it) {
     case 'clean': return cleanDue(it);
     case 'replace': return replaceLeft(it) <= 0;
     case 'reorder': return reorderNeeded(it);
-    case 'ok': return !cleanDue(it) && replaceLeft(it) > 0 && !reorderNeeded(it);
     default: return true;
   }
 }
@@ -575,20 +577,15 @@ function render() {
   $('addBtn').hidden = !has;
 
   if (has) {
+    // Three tiles, one per filter chip — clean-due, replace-due (due today or overdue),
+    // reorder — each a count plus an emoji sub-line or an all-clear check.
     const dueClean = items.filter(cleanDue);
     $('statClean').textContent = dueClean.length;
     $('statCleanSub').textContent = dueClean.length ? dueClean.map(i => i.emoji).join(' ') : 'all clean ✓';
 
-    const scheduled = items.filter(i => i.replaceDays > 0);
-    const soonest = scheduled.sort((a, b) => replaceLeft(a) - replaceLeft(b))[0];
-    if (soonest) {
-      const left = replaceLeft(soonest);
-      $('statNext').textContent = left < 0 ? 'overdue' : left === 0 ? 'today' : `${left} day${left === 1 ? '' : 's'}`;
-      $('statNextSub').textContent = soonest.name;
-    } else {
-      $('statNext').textContent = '—';
-      $('statNextSub').textContent = 'all as-needed';
-    }
+    const dueReplace = items.filter(i => replaceLeft(i) <= 0);
+    $('statReplace').textContent = dueReplace.length;
+    $('statReplaceSub').textContent = dueReplace.length ? dueReplace.map(i => i.emoji).join(' ') : 'on schedule ✓';
 
     const reorder = items.filter(reorderNeeded);
     $('statReorder').textContent = reorder.length;
@@ -598,27 +595,45 @@ function render() {
   }
 
   const visible = items.filter(matches).sort((a, b) => replaceLeft(a) - replaceLeft(b));
-  $('list').innerHTML = visible.map(it => `
+  $('list').innerHTML = visible.map(it => {
+    const isCleanDue = it.cleanDays > 0 && cleanDue(it);
+    return `
     <article class="card" data-id="${it.id}">
-      <div class="rowtop"><h3>${esc(it.emoji)} ${esc(it.name)}</h3></div>
-      <div class="schedule">${esc(cleanLabel(it.cleanDays))} · ${esc(replaceLabel(it.replaceDays))}</div>
-      <div class="schedule">${lastDates(it)}</div>
-      <div class="badges">${badges(it)}</div>
+      <h3>${esc(it.emoji)} ${esc(it.name)}</h3>
       ${it.notes ? `<p class="notes">${esc(it.notes)}</p>` : ''}
-      <div class="stock">
-        <span class="stk-label">Spares:</span>
-        <button data-act="stock-" aria-label="One fewer spare">−</button>
-        <span class="count">${it.stock}</span>
-        <button data-act="stock+" aria-label="One more spare">+</button>
+      <div class="quadrants">
+        <div class="quad">
+          <div class="quad-h">🧼 Cleaning</div>
+          <div class="quad-line">${esc(capFirst(cleanLabel(it.cleanDays)))}</div>
+          <div class="quad-line">${esc(cleanStatus(it))}</div>
+          ${cleanBadge(it)}
+          ${isCleanDue ? `<button class="act primary" data-act="clean">🧼 Mark cleaned</button>` : ''}
+        </div>
+        <div class="quad">
+          <div class="quad-h">↻ Replacing</div>
+          <div class="quad-line">${esc(capFirst(replaceLabel(it.replaceDays)))}</div>
+          <div class="quad-line">Last replaced ${esc(agoLabel(it.lastReplaced))}</div>
+          ${replaceBadge(it)}
+          ${replacedToday(it) ? '' : `<button class="act${isCleanDue ? '' : ' primary'}" data-act="replace">↻ Replaced today</button>`}
+        </div>
+        <div class="quad">
+          <div class="quad-h">📦 Spares</div>
+          <div class="stock">
+            <button data-act="stock-" aria-label="One fewer spare">−</button>
+            <span class="count">${it.stock}</span>
+            <button data-act="stock+" aria-label="One more spare">+</button>
+          </div>
+          ${reorderBadge(it)}
+        </div>
+        <div class="quad">
+          <div class="quad-h">⚙️ Manage</div>
+          <button class="act" data-act="calendar">🗓 Calendar</button>
+          <button class="act" data-act="edit">Edit</button>
+          <button class="act" data-act="delete">Delete</button>
+        </div>
       </div>
-      <div class="actions">
-        ${it.cleanDays > 0 && cleanDue(it) ? `<button class="act primary" data-act="clean">🧼 Mark cleaned</button>` : ''}
-        <button class="act${it.cleanDays > 0 && cleanDue(it) ? '' : ' primary'}" data-act="replace">↻ Replaced today</button>
-        <button class="act" data-act="calendar">🗓 Calendar reminder</button>
-        <button class="act" data-act="edit">Edit</button>
-        <button class="act" data-act="delete">Delete</button>
-      </div>
-    </article>`).join('') || (has ? `<div class="empty"><p>Nothing matches this filter.</p></div>` : '');
+    </article>`;
+  }).join('') || (has ? `<div class="empty"><p>Nothing matches this filter.</p></div>` : '');
 }
 
 /* ---------------- Toast ---------------- */
