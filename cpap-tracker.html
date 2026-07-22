@@ -164,10 +164,11 @@
   .quad-h { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
   .quad-line { font-size: 0.8rem; color: var(--ink-2); }
   .badge {
-    display: flex; align-items: flex-start; gap: 6px; font-size: 0.78rem; font-weight: 600;
+    display: flex; align-items: flex-start; gap: 6px; font-size: 0.78rem; line-height: 16px; font-weight: 600;
     padding: 6px 10px; border-radius: 14px; width: 100%; color: var(--ink);
   }
-  .badge .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; margin-top: 5px; }
+  /* Center the dot on the first text line: (lineHeight − dotSize) / 2 = (16 − 8) / 2 = 4px. */
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; margin-top: 4px; }
   .b-good { background: var(--good-bg); } .b-good .dot { background: var(--good); }
   .b-warning { background: var(--warning-bg); } .b-warning .dot { background: var(--warning); }
   .b-serious { background: var(--serious-bg); } .b-serious .dot { background: var(--serious); }
@@ -534,20 +535,20 @@ function agoLabel(iso) {
    matching quadrant (cleaning / replacing / spares). */
 function badge(cls, html) { return `<span class="badge ${cls}"><span class="dot"></span>${html}</span>`; }
 function replaceBadge(it) {
-  if (it.replaceDays === 0) return badge('b-good', '↻ Replace as needed');
+  if (it.replaceDays === 0) return badge('b-good', 'Replace as needed');
   const left = replaceLeft(it);
-  if (left < 0) return badge('b-critical', `↻ Replace overdue by ${-left} day${left === -1 ? '' : 's'}`);
-  return badge(`b-${severity(it, left)}`, `↻ Replace by ${esc(fmtDate(nextReplace(it)))} · ${left} day${left === 1 ? '' : 's'} left`);
+  if (left < 0) return badge('b-critical', `Replace overdue by ${-left} day${left === -1 ? '' : 's'}`);
+  return badge(`b-${severity(it, left)}`, `Replace by ${esc(fmtDate(nextReplace(it)))} · ${left} day${left === 1 ? '' : 's'} left`);
 }
 function cleanBadge(it) {
   if (it.cleanDays <= 0) return '';
-  if (cleanDue(it)) return badge('b-warning', '🧼 Cleaning due');
+  if (cleanDue(it)) return badge('b-warning', 'Cleaning due');
   const since = daysBetween(parseDate(it.lastCleaned), today());
-  return badge('b-good', `🧼 Cleaned ${since === 0 ? 'today' : since === 1 ? 'yesterday' : since + ' days ago'}`);
+  return badge('b-good', `Cleaned ${since === 0 ? 'today' : since === 1 ? 'yesterday' : since + ' days ago'}`);
 }
 function reorderBadge(it) {
   if (!reorderNeeded(it)) return '';
-  return badge(`b-${it.stock === 0 ? 'critical' : 'serious'}`, `📦 Reorder — ${it.stock} spare${it.stock === 1 ? '' : 's'} left`);
+  return badge(`b-${it.stock === 0 ? 'critical' : 'serious'}`, `Reorder — ${it.stock} spare${it.stock === 1 ? '' : 's'} left`);
 }
 /* The status line under the cleaning label: "Last cleaned …", "Not cleaned yet", or (for
    items with no cleaning schedule) "No cleaning needed" — mirrors the iOS card. */
@@ -607,14 +608,14 @@ function render() {
           <div class="quad-line">${esc(capFirst(cleanLabel(it.cleanDays)))}</div>
           <div class="quad-line">${esc(cleanStatus(it))}</div>
           ${cleanBadge(it)}
-          ${isCleanDue ? `<button class="act primary" data-act="clean">🧼 Mark cleaned</button>` : ''}
+          ${isCleanDue ? `<button class="act primary" data-act="clean">Mark cleaned</button>` : ''}
         </div>
         <div class="quad">
           <div class="quad-h">↻ Replacing</div>
           <div class="quad-line">${esc(capFirst(replaceLabel(it.replaceDays)))}</div>
           <div class="quad-line">Last replaced ${esc(agoLabel(it.lastReplaced))}</div>
           ${replaceBadge(it)}
-          ${replacedToday(it) ? '' : `<button class="act${isCleanDue ? '' : ' primary'}" data-act="replace">↻ Replaced today</button>`}
+          ${replacedToday(it) ? '' : `<button class="act${isCleanDue ? '' : ' primary'}" data-act="replace">Replaced today</button>`}
         </div>
         <div class="quad">
           <div class="quad-h">📦 Spares</div>
