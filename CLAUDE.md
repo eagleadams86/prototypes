@@ -1,9 +1,11 @@
 # Prototypes repo
 
-Self-contained single-file web app prototypes (currently ReturnRadar and PAPTrack). Deployed via GitHub Pages: https://eagleadams86.github.io/prototypes/
+Self-contained single-file web app prototypes (currently just ReturnRadar). Deployed via GitHub Pages: https://eagleadams86.github.io/prototypes/
+
+> **PAPTrack moved out of this repo** into its own product at https://eagleadams86.github.io/paptrack/ (repo `eagleadams86/paptrack`). `cpap-tracker.html` here is now only a redirect stub — don't develop the app here; edit it in the `paptrack` repo.
 
 - Each app is **one HTML file** — everything inline, no build step, no server, works via `file://`. Keep it that way; new prototypes follow the same pattern.
-- No accounts or sign-ups ever required (PAPTrack's optional Google sign-in for cross-device sync is the only exception).
+- No accounts or sign-ups ever required.
 - **README.md is the index** for all prototypes — it must be updated whenever an app is added or meaningfully changed.
 - New prototypes default to the Midnight palette (deep indigo/navy; canonical source: `theme.css` in the lottery repo).
 - After changes: **browser-test locally first**, then commit, push, verify the Pages deploy, and spot-check live. To serve locally, use whatever your environment provides: the desktop app's preview pane reads `.claude/launch.json` (port 8011); otherwise run `python3 -m http.server 8011` in this folder and drive a browser with whatever automation is available (e.g. Playwright). Don't spend time hunting for a specific tool — any local server + browser works. These prototypes are candidates for eventual native iOS/macOS versions once polished.
