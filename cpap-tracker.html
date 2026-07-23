@@ -176,7 +176,7 @@
   .b-neutral { background: var(--chip-bg); } .b-neutral .dot { background: var(--muted); }
   .stock { display: flex; align-items: center; justify-content: center; gap: 8px; }
   .stock button {
-    width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--hairline);
+    width: 30px; height: 30px; border-radius: 12px; border: 1px solid var(--hairline);
     background: var(--surface); color: var(--ink); font-size: 1rem; cursor: pointer; line-height: 1;
   }
   .stock .count { font-weight: 700; min-width: 1.6ch; text-align: center; }
@@ -185,7 +185,6 @@
     padding: 8px 12px; border-radius: 12px; font-size: 0.85rem; cursor: pointer;
   }
   .act:hover { border-color: var(--muted); }
-  .act.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .quad .act { width: 100%; text-align: center; font-size: 0.82rem; }
 
   /* ---- Empty state ---- */
@@ -608,14 +607,14 @@ function render() {
           <div class="quad-line">${esc(capFirst(cleanLabel(it.cleanDays)))}</div>
           <div class="quad-line">${esc(cleanStatus(it))}</div>
           ${cleanBadge(it)}
-          ${isCleanDue ? `<button class="act primary" data-act="clean">Mark cleaned</button>` : ''}
+          ${isCleanDue ? `<button class="act" data-act="clean">Mark cleaned</button>` : ''}
         </div>
         <div class="quad">
           <div class="quad-h">↻ Replacing</div>
           <div class="quad-line">${esc(capFirst(replaceLabel(it.replaceDays)))}</div>
           <div class="quad-line">Last replaced ${esc(agoLabel(it.lastReplaced))}</div>
           ${replaceBadge(it)}
-          ${replacedToday(it) ? '' : `<button class="act${isCleanDue ? '' : ' primary'}" data-act="replace">Replaced today</button>`}
+          ${replacedToday(it) ? '' : `<button class="act" data-act="replace">Replaced today</button>`}
         </div>
         <div class="quad">
           <div class="quad-h">📦 Spares</div>
