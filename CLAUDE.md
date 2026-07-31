@@ -1,6 +1,8 @@
 # Prototypes repo
 
-Self-contained single-file web app prototypes (currently just ReturnRadar). Deployed via GitHub Pages: https://eagleadams86.github.io/prototypes/
+Self-contained single-file web app prototypes. Deployed via GitHub Pages: https://eagleadams86.github.io/prototypes/
+
+> **The repo currently holds no active prototypes** — ReturnRadar was retired and deleted (recover from history: `git show 6fe221d:returnradar.html`), and PAPTrack graduated out. It's a staging shelf for new single-file experiments.
 
 > **PAPTrack moved out of this repo** into its own product at https://eagleadams86.github.io/paptrack/ (repo `eagleadams86/paptrack`). `cpap-tracker.html` here is now only a redirect stub — don't develop the app here; edit it in the `paptrack` repo.
 
