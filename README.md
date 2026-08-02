@@ -42,4 +42,4 @@ There is no server of our own. Each prototype must work from a double-clicked fi
 2. Add it to the list at the top of this README
 3. Push — GitHub Pages serves it at `eagleadams86.github.io/prototypes/<file>.html`
 
-New prototypes default to the Midnight palette (deep indigo/navy; canonical source: `theme.css` in the lottery repo).
+New prototypes default to the Midnight palette (deep indigo/navy; canonical source: the private [claude-theme-pack](https://github.com/eagleadams86/claude-theme-pack) repo — copy its generated `theme.css` or transcribe from its `tokens.json`).
