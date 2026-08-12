@@ -6,7 +6,7 @@ Self-contained, no-server web app prototypes. Each app is a single HTML file —
 
 ---
 
-## Graduated & retired
+## Graduated & Retired
 
 | App | Status |
 |-----|--------|
@@ -36,7 +36,7 @@ There is no server of our own. Each prototype must work from a double-clicked fi
 
 ---
 
-## Adding a prototype
+## Adding a Prototype
 
 1. Drop a new self-contained `*.html` file in the repo root (link `favicon.ico` in its `<head>`)
 2. Add it to the list at the top of this README
