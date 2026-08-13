@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Every page on eagleadams86.github.io shares one browser origin with the
+       other apps' saved data, so even a redirect stub carries a CSP: only its
+       own inline script and style may run, nothing loads from anywhere. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
   <title>PAPTrack has moved</title>
   <link rel="canonical" href="https://eagleadams86.github.io/paptrack/">
   <meta http-equiv="refresh" content="0; url=https://eagleadams86.github.io/paptrack/">

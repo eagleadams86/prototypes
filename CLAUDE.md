@@ -7,6 +7,7 @@ Self-contained single-file web app prototypes. Deployed via GitHub Pages: https:
 > **PAPTrack moved out of this repo** into its own product at https://eagleadams86.github.io/paptrack/ (repo `eagleadams86/paptrack`). `cpap-tracker.html` here is now only a redirect stub — don't develop the app here; edit it in the `paptrack` repo.
 
 - Each app is **one HTML file** — everything inline, no build step, no server, works via `file://`. Keep it that way; new prototypes follow the same pattern.
+- **Every page here ships a Content-Security-Policy meta tag, even a redirect stub.** All of `eagleadams86.github.io` is ONE browser origin, shared with the localStorage and sync sessions of the real apps (Sprint Velocity, Flow Metrics, …), so a prototype page that ran hostile or third-party script could reach their data. Baseline for a new prototype: `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'` — and never a third-party script from anywhere.
 - No accounts or sign-ups ever required.
 - **README.md is the index** for all prototypes — it must be updated whenever an app is added or meaningfully changed.
 - New prototypes default to the Midnight palette (deep indigo/navy; canonical source: `theme.css` in the lottery repo).
