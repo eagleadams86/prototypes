@@ -19,6 +19,7 @@ Self-contained, no-server web app prototypes. Each app is a single HTML file —
 
 | File | Description |
 |------|-------------|
+| `index.html` | Hand-written landing page. Without it, GitHub Pages renders this README into an index page with no CSP and a third-party script — never delete it (or `.nojekyll`, which turns that rendering off). |
 | `cpap-tracker.html` | Redirect stub → PAPTrack's new home (`eagleadams86.github.io/paptrack`) |
 | `favicon.ico` | Shared favicon (same one used across the dashboard and lottery repos) |
 
