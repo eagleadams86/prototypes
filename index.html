@@ -5,19 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Every page on eagleadams86.github.io shares one browser origin with the
        other apps' saved data, so even this landing page carries a CSP: only its
-       own inline style may apply, nothing loads from anywhere but the favicon.
+       own files and inline style may apply, nothing loads from anywhere but the
+       favicon. `style-src 'self'` is what admits theme.css below — it was
+       'unsafe-inline' alone while this page carried its own hardcoded palette.
        Without this file, GitHub Pages Jekyll-renders README.md into an index
        page with no CSP and a third-party script — never delete it. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
   <title>Claude Prototypes</title>
   <link rel="icon" href="favicon.ico">
+  <!-- The shared palette, the same bytes every other app in the family reads.
+       This page used to hardcode its own four colours — the only public page in
+       the family off the unified theme (found 2026-08-20). Linked, not inlined,
+       so a pack change reaches it like everywhere else. -->
+  <link rel="stylesheet" href="theme.css">
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0a0e1a;color:#e7eaf6;
+    /* Midnight is theme.css's :root, and this page never offers a picker — a
+       one-screen landing page has nothing to persist a choice for. So it takes
+       the default palette and says so, rather than pinning colours of its own. */
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+         background:var(--bg);color:var(--text-primary);
          margin:0;padding:2rem 1.5rem;line-height:1.6}
     main{max-width:42rem;margin:0 auto}
-    a{color:#818cf8}
+    a{color:var(--accent)}
+    a:focus-visible{outline:2px solid var(--focus-border);outline-offset:2px}
     h1{margin-top:0}
-    p.muted{color:#aab2d0}
+    p.muted{color:var(--text-secondary)}
   </style>
 </head>
 <body>
