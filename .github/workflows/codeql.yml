@@ -1,0 +1,52 @@
+# CodeQL static analysis for the app's JavaScript.
+#
+# Added 2026-08-21, closing the last gap: the 2026-08-20 rollout covered seven
+# of the nine public repos, and this was one of the two it missed. Dependabot only sees declared
+# dependencies, and these apps have almost none; the code that matters is the
+# single HTML file, which nothing was reading.
+#
+# CodeQL extracts the <script> blocks out of the HTML. There is very little
+# script in this repo by design, which is the point rather than a reason to skip
+# it: the check is what notices when that stops being true. What it is really here for is
+# the shared-origin rule: every Pages site in this account is one browser
+# origin, so an XSS hole in any page is a hole in all of them, and the escaping
+# discipline that prevents it is worth having a machine re-check on every push.
+#
+# `security-events: write` is the one extra permission over the tests workflow,
+# and it is what lets the run publish alerts to the Security tab. Everything
+# else stays read-only.
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so a newly published query pattern reaches this repo without
+    # waiting for the next commit. Monday early, off the hour to avoid the
+    # top-of-hour scheduling crush.
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+          # No paths-ignore: this repo vendors no third-party bundle, so there is
+          # nothing here that an alert could name and nobody could fix.
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript

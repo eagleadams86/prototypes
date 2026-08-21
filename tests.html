@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototypes — Tests</title>
+<style>
+  /* Dev-only page. This repo has no app logic to test — its whole job is holding
+     three things that keep GitHub Pages honest (`.nojekyll`, `index.html`, and a
+     CSP on every page), so the suite reads the files and asserts on their text
+     rather than booting anything. That is also why there is no hidden iframe
+     here, unlike the sibling repos' suites.
+
+     Serve over http://localhost (python3 -m http.server 8019), then open
+     http://localhost:8019/tests.html. Read-only: nothing here writes anything.
+     Colours are the Midnight palette from the theme pack (dev page, hardcoded —
+     this page must keep working even if theme.css is the thing that broke). */
+  body { background: #0a0e1a; color: #e7eaf6; margin: 0;
+         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #838cab; font-size: 12.5px; margin: 0 0 18px; }
+  #summary { font-weight: 600; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px;
+             border: 1px solid #262f4a; background: #121829; }
+  #summary.ok  { color: #72fe84; border-color: #72fe84; }
+  #summary.bad { color: #fb7874; border-color: #fb7874; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 6px 8px; border-bottom: 1px solid #262f4a; vertical-align: top; }
+  td.st { width: 28px; font-weight: 700; }
+  tr.pass td.st { color: #72fe84; }
+  tr.fail td.st { color: #fb7874; }
+  tr.fail td.msg { color: #fb7874; }
+  .msg { color: #838cab; font-size: 12px; white-space: pre-wrap; }
+  .group td { padding-top: 16px; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+              text-transform: uppercase; color: #838cab; border-bottom-color: #374163; }
+  code { color: #aab2d0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Prototypes — Page Tests</h1>
+  <p class="sub">Reads the real files this repo publishes. Read-only: nothing is saved.</p>
+  <div id="summary">Loading files…</div>
+  <table><tbody id="out"></tbody></table>
+</div>
+
+<script>
+'use strict';
+
+/* ── The pages this repo publishes ──────────────────────────────────────────
+   Hard-coded, and it has to be: a browser cannot list a directory it is served
+   from, and `index.html` means the server never offers one. ADD A NEW PROTOTYPE
+   HERE when you add the file — otherwise it ships with no CSP check at all,
+   which is the exact hole this suite exists to close. README.md's file table
+   and CLAUDE.md both say so too. */
+const PAGES = ['index.html', 'cpap-tracker.html'];
+const PAPTRACK = 'https://eagleadams86.github.io/paptrack/';
+
+const SRC = {};              // filename -> text, filled by loadSources()
+let NOJEKYLL = null;         // null = not fetched, string = its contents
+let THEME = '';
+
+const TESTS = [];
+function group(name) { TESTS.push({ group: name }); }
+function t(name, fn) { TESTS.push({ name, fn }); }
+function ok(cond, note) { if (!cond) throw new Error(note || 'expected truthy'); }
+function eq(actual, expected, note) {
+  const a = JSON.stringify(actual), e = JSON.stringify(expected);
+  if (a !== e) throw new Error((note ? note + ': ' : '') + 'expected ' + e + ', got ' + a);
+}
+/* HTML comments explain things by naming them — including the very hosts and
+   tags these tests forbid. Strip them before asserting, or the prose fails the
+   test it is describing. */
+const stripComments = (s) => s.replace(/<!--[\s\S]*?-->/g, '');
+const csp = (s) => (stripComments(s)
+  .match(/http-equiv="Content-Security-Policy"\s+content="([^"]+)"/) || [])[1] || '';
+
+group('The three files that keep GitHub Pages honest');
+t('.nojekyll exists — without it Pages renders README.md as a page of its own', () => {
+  ok(NOJEKYLL !== null,
+     '.nojekyll is missing. Pages then Jekyll-renders every .md in the repo into a '
+     + 'CSP-less page that pulls a script from cdnjs — on the origin that also holds '
+     + "the work apps' data. This is the 2026-08-18 incident, exactly.");
+});
+t('.nojekyll is empty — its presence is the whole signal', () => {
+  /* Guarded rather than assumed: when the file is missing the test above already
+     says so in full, and without this line this one adds a second, worse-worded
+     failure ("Cannot read properties of null") on top of it. */
+  ok(NOJEKYLL !== null, 'skipped — .nojekyll is missing; see the test above');
+  eq(NOJEKYLL.trim(), '', 'anything in this file is a misunderstanding of what it does');
+});
+t('index.html exists, so the site root is never README.md', () => {
+  ok(SRC['index.html'], 'index.html is missing — Pages would serve a rendering of README.md');
+  ok(/<!doctype html>/i.test(SRC['index.html']), 'and it is a real hand-written page');
+});
+t('the landing page is ours, not a Jekyll rendering of the README', () => {
+  const s = SRC['index.html'];
+  ok(csp(s), 'a Jekyll rendering would carry no CSP at all');
+  /* Comments stripped first: this page's own comment EXPLAINS the Jekyll problem
+     by name, and checking the raw source would fail on the prose describing the
+     thing it is guarding against. */
+  const body = stripComments(s);
+  /* `<!-{2}` is deliberate and must stay that way. Spelled out as the four
+     literal characters, this would be an UNBALANCED HTML comment opener sitting
+     inside a <script> element — which drops the HTML tokenizer into
+     script-data-escaped state, so it never recognises the closing tag and the
+     WHOLE FILE silently fails to execute. No error, no console message: the page
+     just sits on "Loading files…" for ever. It happened while this suite was
+     being written. Don't tidy it back, and don't spell the sequence out in the
+     prose here either — the comment is inside the script too. */
+  ok(!/jekyll|<!-{2}\s*Generated by/i.test(body), 'no generator fingerprint');
+});
+
+group('Every page carries a Content-Security-Policy');
+PAGES.forEach((f) => {
+  t(f + ' has a CSP meta tag', () => {
+    ok(csp(SRC[f]), 'no Content-Security-Policy on ' + f);
+  });
+  t(f + ' locks the three defaults down', () => {
+    const c = csp(SRC[f]);
+    ok(/default-src 'none'/.test(c), "default-src 'none' on " + f);
+    ok(/base-uri 'none'/.test(c), "base-uri 'none' on " + f);
+    ok(/form-action 'none'/.test(c), "form-action 'none' on " + f);
+  });
+  t(f + "'s CSP names no off-origin host", () => {
+    const c = csp(SRC[f]);
+    ok(!/https?:\/\//.test(c),
+       'a CSP here must admit nothing external — found: ' + c);
+  });
+});
+
+group('No third-party anything — the shared-origin rule');
+PAGES.forEach((f) => {
+  t(f + ' loads no off-origin script, style, image or font', () => {
+    const s = stripComments(SRC[f]);
+    /* Anchors are the one legitimate off-origin reference: they navigate, they
+       do not execute. Everything else — src=, and href= on <link> — is a
+       subresource, and a subresource from another host is the whole hole. */
+    const links = s.match(/<link\b[^>]*>/gi) || [];
+    links.forEach((tag) => {
+      /* rel=canonical and rel=alternate are METADATA, not subresources: nothing is
+         fetched and nothing executes, they just name a URL. The redirect stub's
+         canonical link is off-origin on purpose — pointing at where the page went
+         is the entire job. Everything else a <link> can do (stylesheet, icon,
+         preload, prefetch, modulepreload) fetches, and must stay on this site. */
+      if (/\brel="(canonical|alternate)"/i.test(tag)) return;
+      ok(!/href="https?:\/\//i.test(tag), 'off-origin <link> in ' + f + ': ' + tag);
+    });
+    ok(!/\bsrc="https?:\/\//i.test(s), 'off-origin src= in ' + f);
+    ok(!/@import\s+url\(\s*['"]?https?:/i.test(s), '@import from another host in ' + f);
+  });
+});
+
+group('The landing page runs no script, and its CSP is why');
+t('index.html contains no script element at all', () => {
+  ok(!/<script/i.test(stripComments(SRC['index.html'])),
+     'index.html has a <script>, and its CSP has no script-src — it would be dead code');
+});
+t('and its CSP omits script-src, which is what makes that permanent', () => {
+  const c = csp(SRC['index.html']);
+  ok(!/script-src/.test(c),
+     "index.html's CSP grew a script-src. If the page really needs script now, that is a "
+     + 'decision to take deliberately — but the pair of tests above and here exist so it '
+     + 'cannot happen by accident, with the script silently blocked.');
+});
+
+group('The redirect stub actually redirects');
+t('cpap-tracker.html redirects three ways, all to the same place', () => {
+  const s = stripComments(SRC['cpap-tracker.html']);
+  const refresh = (s.match(/http-equiv="refresh"\s+content="0;\s*url=([^"]+)"/i) || [])[1];
+  const canon = (s.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i) || [])[1];
+  const script = (s.match(/location\.replace\("([^"]+)"\)/) || [])[1];
+  eq(refresh, PAPTRACK, 'meta refresh target');
+  eq(canon, PAPTRACK, 'canonical target');
+  eq(script, PAPTRACK, 'location.replace target');
+});
+t('and says so in words, for the moment before the redirect fires', () => {
+  const s = SRC['cpap-tracker.html'];
+  ok(/new home/i.test(s), 'the stub explains itself to anyone who sees it');
+  ok(s.includes('href="' + PAPTRACK + '"'), 'and offers the link if the redirect fails');
+});
+
+group('The shared palette — linked, not transcribed');
+PAGES.forEach((f) => {
+  t(f + ' links theme.css rather than inlining a palette', () => {
+    ok(/<link[^>]+href="theme\.css"/.test(SRC[f]), f + ' does not link theme.css');
+  });
+});
+t('theme.css is the pack file, with all four themes', () => {
+  ok(/GENERATED by build\.py/.test(THEME), 'theme.css is not the generated pack file');
+  ['dark', 'light', 'sepia'].forEach((th) =>
+    ok(THEME.includes('[data-theme="' + th + '"]'), th + ' is missing from theme.css'));
+  ok(/:root\s*\{/.test(THEME), 'midnight lives in :root and must stay there');
+});
+t('no page hard-codes a palette colour of its own', () => {
+  /* The drift check, at the only scale this repo can drift at. Shadows and rings
+     are neutrals rather than palette values and are allowed everywhere in the
+     family; a hex is not. */
+  PAGES.forEach((f) => {
+    const body = stripComments(SRC[f]).replace(/box-shadow:[^;]+;/g, '');
+    const hits = body.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+    eq(hits, [], f + ' hard-codes a colour instead of using a var(--…) token');
+  });
+});
+
+group('What the footer has to promise on a public page');
+t('the landing page carries How it works, privacy and the licence line', () => {
+  const s = SRC['index.html'];
+  ok(/>How it works<\/a>/.test(s), 'the repo link is labelled "How it works" family-wide');
+  ok(s.includes('href="https://github.com/eagleadams86/prototypes"'), 'and points at this repo');
+  ok(/MIT licensed/.test(s), 'the MIT authorship line');
+  ok(/&copy; 2026 Charles Adams/.test(s), 'the copyright line');
+  /* This page has no privacy POLICY, deliberately — it stores nothing and runs
+     nothing, so there would be nothing to write one about. It still has to say
+     that, which is the promise the family rule is actually about. */
+  ok(/stores nothing/.test(s) && /no network/i.test(s),
+     'the page must still state what it does not do, in place of a policy');
+});
+
+/* ── Runner ───────────────────────────────────────────────────────────────── */
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
+async function loadSources() {
+  const grab = async (f) => {
+    try { const r = await fetch(f); return r.ok ? await r.text() : null; }
+    catch (e) { return null; }
+  };
+  await Promise.all(PAGES.map(async (f) => { SRC[f] = await grab(f); }));
+  NOJEKYLL = await grab('.nojekyll');
+  THEME = await grab('theme.css') || '';
+}
+
+window.addEventListener('load', async () => {
+  if (!LOCAL_HOSTS.includes(location.hostname)) return refuse();
+  await loadSources();
+  run();
+});
+
+/* Two ways to land here, needing different sentences: the published site, and a
+   file:// copy off disk, where fetch() of a sibling file is blocked outright so
+   every test would fail for a reason that is not about the repo. */
+function refuse() {
+  const onDisk = location.protocol === 'file:';
+  const s = document.getElementById('summary');
+  s.className = 'bad';
+  s.textContent = onDisk
+    ? 'Not run from a file — this page needs a local server.'
+    : 'Not run here — this page reads the repo files, so it runs against a copy you serve.';
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.colSpan = 3;
+  td.style.cssText = 'font-size:13px;line-height:1.6';
+  td.innerHTML = (onDisk
+    ? 'The suite fetches the pages to read them, and a browser blocks fetching a sibling '
+      + 'file when the page is opened straight off disk. Serve the folder instead:'
+    : 'The suite checks the files in the repo folder, so it runs on <code>localhost</code> '
+      + 'against a copy you are serving, not against the published site:') +
+    '<br><br><code>cd ~/claude-prototypes &amp;&amp; python3 -m http.server 8019</code><br>' +
+    'then open <code>http://localhost:8019/tests.html</code>.<br><br>' +
+    'Nothing has been changed by opening this page — <a href="index.html">back to the site</a>.';
+  tr.appendChild(td);
+  document.getElementById('out').appendChild(tr);
+}
+
+function run() {
+  const missing = PAGES.filter((f) => !SRC[f]);
+  if (missing.length) {
+    /* A page that would not load is a SETUP problem or a deleted file, and
+       without this every test about it throws its own confusing error. */
+    const s = document.getElementById('summary');
+    s.className = 'bad';
+    s.textContent = 'Could not read: ' + missing.join(', ') + ' — is this folder being served?';
+    document.getElementById('out').innerHTML =
+      '<tr><td class="msg" style="white-space:normal;font-family:inherit;font-size:13px">'
+      + 'Run <code>cd ~/claude-prototypes &amp;&amp; python3 -m http.server 8019</code> and open '
+      + '<code>http://localhost:8019/tests.html</code>. If the server is running, the file is '
+      + 'genuinely gone — which is itself the failure this suite is for.</td></tr>';
+    return;
+  }
+  const out = document.getElementById('out');
+  let pass = 0, fail = 0;
+  for (const item of TESTS) {
+    if (item.group) {
+      const tr = document.createElement('tr');
+      tr.className = 'group';
+      tr.innerHTML = '<td colspan="3"></td>';
+      tr.firstChild.textContent = item.group;
+      out.appendChild(tr);
+      continue;
+    }
+    const tr = document.createElement('tr');
+    const st = document.createElement('td'); st.className = 'st';
+    const name = document.createElement('td'); name.textContent = item.name;
+    const msg = document.createElement('td'); msg.className = 'msg';
+    try {
+      item.fn();
+      tr.className = 'pass'; st.textContent = '✓'; pass++;
+    } catch (e) {
+      tr.className = 'fail'; st.textContent = '✕'; msg.textContent = e.message; fail++;
+    }
+    tr.appendChild(st); tr.appendChild(name); tr.appendChild(msg);
+    out.appendChild(tr);
+  }
+  const s = document.getElementById('summary');
+  s.textContent = fail === 0 ? `All ${pass} tests pass` : `${fail} of ${pass + fail} tests FAILED`;
+  s.className = fail === 0 ? 'ok' : 'bad';
+  document.title = (fail === 0 ? '✓ ' : '✕ ') + document.title;
+}
+</script>
+</body>
+</html>

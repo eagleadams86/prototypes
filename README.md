@@ -22,6 +22,9 @@ Self-contained, no-server web app prototypes. Each app is a single HTML file —
 | `index.html` | Hand-written landing page. Without it, GitHub Pages renders this README into an index page with no CSP and a third-party script — never delete it (or `.nojekyll`, which turns that rendering off). |
 | `cpap-tracker.html` | Redirect stub → PAPTrack's new home (`eagleadams86.github.io/paptrack`) |
 | `favicon.ico` | Shared favicon (same one used across the dashboard and lottery repos) |
+| `theme.css` | The shared four-theme palette, generated in the private [claude-theme-pack](https://github.com/eagleadams86/claude-theme-pack) repo and copied here byte-for-byte. Linked, not inlined, so a palette change reaches this page like every other app |
+| `tests.html` | Checks the files above rather than any app logic: `.nojekyll` present and empty, `index.html` real, a CSP on every page, no off-origin subresource, no palette hard-coded locally. Run it on `localhost` — see below |
+| `.nojekyll` | Empty file. Its presence turns off Jekyll, which otherwise renders every `.md` here into a page with no CSP and a third-party script |
 
 ---
 
@@ -37,10 +40,29 @@ There is no server of our own. Each prototype must work from a double-clicked fi
 
 ---
 
+## Tests
+
+There is no app logic here, so the suite checks the things this repo actually exists to hold:
+`.nojekyll` is present and empty, `index.html` is a real hand-written page rather than a Jekyll
+rendering of the README, every page carries a Content-Security-Policy that names no external
+host, nothing loads a script or stylesheet from another site, the landing page runs no script
+at all (its CSP has no `script-src`, so one would be silently dead), the redirect stub redirects
+all three ways to the same URL, and no page hard-codes a colour instead of using a theme token.
+
+It runs on `localhost` only — it reads the repo folder, so it should test a copy you are
+serving rather than the published site:
+
+```bash
+python3 -m http.server 8019   # then open http://localhost:8019/tests.html
+```
+
+CI runs the same page headlessly in Chromium on every push, and fails if the summary goes red.
+
 ## Adding a Prototype
 
 1. Drop a new self-contained `*.html` file in the repo root (link `favicon.ico` in its `<head>`)
 2. Add it to the list at the top of this README
-3. Push — GitHub Pages serves it at `eagleadams86.github.io/prototypes/<file>.html`
+3. **Add its filename to `PAGES` in `tests.html`** — otherwise it ships with no CSP check at all
+4. Push — GitHub Pages serves it at `eagleadams86.github.io/prototypes/<file>.html`
 
 New prototypes default to the Midnight palette (deep indigo/navy; canonical source: the private [claude-theme-pack](https://github.com/eagleadams86/claude-theme-pack) repo — copy its generated `theme.css` or transcribe from its `tokens.json`).
