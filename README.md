@@ -23,7 +23,7 @@ Self-contained, no-server web app prototypes. Each app is a single HTML file —
 | `cpap-tracker.html` | Redirect stub → PAPTrack's new home (`eagleadams86.github.io/paptrack`) |
 | `favicon.ico` | Shared favicon (same one used across the dashboard and lottery repos) |
 | `theme.css` | The shared four-theme palette, generated in the private [claude-theme-pack](https://github.com/eagleadams86/claude-theme-pack) repo and copied here byte-for-byte. Linked, not inlined, so a palette change reaches this page like every other app |
-| `tests.html` | Checks the files above rather than any app logic: `.nojekyll` present and empty, `index.html` real, a CSP on every page, no off-origin subresource, no palette hard-coded locally. Run it on `localhost` — see below |
+| `tests.html` | Checks the files above rather than any app logic: `.nojekyll` present and empty, `index.html` real, a CSP on every page, no off-origin subresource, no palette hard-coded locally. Run it on `localhost` — see below. Opened on the live site it declines to run and shows the latest CI result instead, which is why its own CSP names `https://api.github.com`; the pages it checks name nothing |
 | `.nojekyll` | Empty file. Its presence turns off Jekyll, which otherwise renders every `.md` here into a page with no CSP and a third-party script |
 
 ---
