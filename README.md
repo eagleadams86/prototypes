@@ -47,7 +47,17 @@ There is no app logic here, so the suite checks the things this repo actually ex
 rendering of the README, every page carries a Content-Security-Policy that names no external
 host, nothing loads a script or stylesheet from another site, the landing page runs no script
 at all (its CSP has no `script-src`, so one would be silently dead), the redirect stub redirects
-all three ways to the same URL, and no page hard-codes a colour instead of using a theme token.
+all three ways to the same URL, no page hard-codes a colour instead of using a theme token, and
+the landing page is a real `<main>` / `<footer>` pair with `</main>` closing before the footer.
+
+That pair went in on 2026-08-21: the closing three paragraphs sat *inside* `<main>` as loose
+prose, and a `<footer>` nested in `main` is not contentinfo at all. The same correction moved
+through every public page in the family at once. The middle of those three lines was reworded
+in the same pass — it claimed the page "makes no network requests", which is not quite true of
+a page that fetches `theme.css` and `favicon.ico`; it now says what it actually asks for. This
+is the one public page in the family with no privacy policy, deliberately, so that sentence is
+standing in for one and has to be exactly right. The suite asserts the claims rather than the
+old wording, and fails if the overclaiming sentence comes back.
 
 It runs on `localhost` only — it reads the repo folder, so it should test a copy you are
 serving rather than the published site:

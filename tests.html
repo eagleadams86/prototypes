@@ -227,11 +227,35 @@ t('the landing page carries How it works, privacy and the licence line', () => {
   ok(s.includes('href="https://github.com/eagleadams86/prototypes"'), 'and points at this repo');
   ok(/MIT licensed/.test(s), 'the MIT authorship line');
   ok(/&copy; 2026 Charles Adams/.test(s), 'the copyright line');
-  /* This page has no privacy POLICY, deliberately — it stores nothing and runs
+  /* This page has no privacy POLICY, deliberately — it keeps nothing and runs
      nothing, so there would be nothing to write one about. It still has to say
-     that, which is the promise the family rule is actually about. */
-  ok(/stores nothing/.test(s) && /no network/i.test(s),
-     'the page must still state what it does not do, in place of a policy');
+     that, which is the promise the family rule is actually about.
+
+     Matched on the CLAIMS rather than one sentence, because the sentence was
+     corrected on 2026-08-21: it read "makes no network requests", which is not
+     quite true of a page that fetches its own stylesheet and icon. A privacy
+     statement that overclaims is worse than one that is merely short, and a
+     test that pins the overclaiming words keeps it there. */
+  ok(/keeps nothing/.test(s), 'the page must say it keeps nothing');
+  ok(/runs no script/.test(s), 'and that it runs no script');
+  ok(/network/i.test(s), 'and say what it does and does not ask the network for');
+  ok(!/makes no network requests/i.test(s),
+     'that claim is not true of a page that fetches theme.css and favicon.ico — '
+     + 'say what it actually asks for instead');
+});
+
+group('Landmarks — a real main, and a real footer after it');
+/* Added 2026-08-21. The landing page had a <main>, but its closing three
+   paragraphs sat INSIDE it as loose prose: a <footer> nested in main is not
+   contentinfo at all, and there was no <footer> here to begin with. Same pair,
+   same order, as every sibling app's privacy page. */
+t('index.html has a real <main> and a real <footer>, in that order', () => {
+  const bare = stripComments(SRC['index.html']);
+  ok(/<main>/.test(bare), 'no main landmark on the landing page');
+  ok(/<footer>/.test(bare),
+     'the footer is three loose paragraphs — that is not a contentinfo landmark');
+  ok(bare.indexOf('</main>') < bare.indexOf('<footer>'),
+     'with main CLOSED before it: a <footer> inside main is not contentinfo at all');
 });
 
 /* ── Runner ───────────────────────────────────────────────────────────────── */
