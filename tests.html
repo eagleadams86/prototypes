@@ -245,7 +245,10 @@ t('no page hard-codes a palette colour of its own', () => {
      are neutrals rather than palette values and are allowed everywhere in the
      family; a hex is not. */
   PAGES.forEach((f) => {
-    const body = stripComments(SRC[f]).replace(/box-shadow:[^;]+;/g, '');
+    /* No box-shadow exemption any more: the family dropped elevation shadows on
+       2026-08-23, so a `box-shadow` would be both a new colour literal AND a new
+       shadow, and this check should see it. */
+    const body = stripComments(SRC[f]);
     const hits = body.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
     eq(hits, [], f + ' hard-codes a colour instead of using a var(--…) token');
   });
