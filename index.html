@@ -35,10 +35,32 @@
     a:focus-visible{outline:2px solid var(--focus-border);outline-offset:2px}
     h1{margin-top:0;font-size:var(--fs-xl)}
     p.muted{color:var(--text-secondary)}
-    /* Footers are xs and muted in every app in the family (rule 7b). Needs the
-       .muted in the selector to out-rank the rule above it on colour. */
-    footer p.muted{font-size:var(--fs-xs);color:var(--text-muted)}
-  </style>
+  /* ── The footer every public page in this account carries ────────────────────
+   Sprint Predictability's, transcribed — it is the design lead for this chrome,
+   and a change here belongs there too. THREE lines, always: what the app does
+   with your data, the privacy policy beside the repo under the label "How it
+   works", and the authorship line.
+
+   The authorship line carries TWO links and the pairing is the part that gets
+   got wrong: "independent personal project" points at NOTICE (who owns it) and
+   "MIT licensed" points at LICENSE (the terms). They were the other way round
+   in Sprint Predictability once — the label promised the licence and landed on
+   the provenance statement, whose own second line then says "See LICENSE for
+   the terms".
+
+   `footer` is a flex ROW so an app with a cross-link to a sibling can put it at
+   the right-hand end; `.footnotes` is what keeps the three paragraphs stacked
+   inside it. Without that wrapper the paragraphs become flex items and lay out
+   side by side, so it is not optional even on a page with no cross-link.
+
+   The links are MUTED rather than accent: this is provenance at the foot of a
+   document, not something to click on the way in. */
+footer { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.footnotes { flex: 1 1 320px; min-width: 0; }
+.privacy { font-size: var(--fs-xs); color: var(--text-muted); margin: 28px 0 0; padding-left: 19px; }
+.privacy-links { margin-top: 6px; }
+.privacy-links a { color: var(--text-muted); }
+</style>
 </head>
 <body>
   <main>
@@ -61,13 +83,17 @@
        middle line says so outright rather than leaving the absence to be read
        as an oversight. -->
   <footer>
-    <p class="muted"><a href="https://github.com/eagleadams86/prototypes">How it works</a>
-      — full details in the repo.</p>
-    <p class="muted">This page keeps nothing, runs no script and asks the network for
-      nothing beyond its own stylesheet and icon — there is nothing here to have a
-      privacy policy about.</p>
-    <p class="muted">&copy; 2026 Charles Adams — an independent personal project,
-      <a href="https://github.com/eagleadams86/prototypes/blob/main/LICENSE">MIT licensed</a>.</p>
+    <div class="footnotes">
+    <p class="privacy" id="privacyNote">🔒 Private — this page keeps nothing, runs no script
+      and asks the network for nothing beyond its own stylesheet and icon. There is nothing
+      here to have a privacy policy about.</p>
+    <p class="privacy privacy-links"><a href="https://github.com/eagleadams86/prototypes" target="_blank" rel="noopener noreferrer">How it works</a></p>
+    <p class="privacy privacy-links">&copy; 2026 Charles Adams — an
+    <a href="https://github.com/eagleadams86/prototypes/blob/main/NOTICE"
+       target="_blank" rel="noopener noreferrer">independent personal project</a>,
+    <a href="https://github.com/eagleadams86/prototypes/blob/main/LICENSE"
+       target="_blank" rel="noopener noreferrer">MIT licensed</a>.</p>
+    </div>
   </footer>
 </body>
 </html>
