@@ -75,4 +75,4 @@ CI runs the same page headlessly in Chromium on every push, and fails if the sum
 3. **Add its filename to `PAGES` in `tests.html`** — otherwise it ships with no CSP check at all
 4. Push — GitHub Pages serves it at `eagleadams86.github.io/prototypes/<file>.html`
 
-New prototypes default to the Midnight palette (deep indigo/navy; canonical source: the private [claude-theme-pack](https://github.com/eagleadams86/claude-theme-pack) repo — copy its generated `theme.css` or transcribe from its `tokens.json`).
+New prototypes are designed against the Midnight palette (deep indigo/navy), which is the family's base palette; what a page *opens* on is `auto` — the family default since 2026-08-22 — which follows the reader's own system, resolving to Light or Midnight. Canonical source: the private [claude-theme-pack](https://github.com/eagleadams86/claude-theme-pack) repo — copy its generated `theme.css` or transcribe from its `tokens.json`. Both pages here carry `data-theme="auto"` on `<html>`; they have no picker and save nothing, so that attribute is the whole of their theme.
